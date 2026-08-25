@@ -1,0 +1,108 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master, dev]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    environment: ${{ github.ref_name == 'master' && 'prod' || 'dev' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for CalVer tag enumeration
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        with:
+          envs: NPM_TOKEN
+          host: ${{ secrets.OCI_HOST }}
+          username: ${{ secrets.OCI_USER }}
+          key: ${{ secrets.OCI_SSH_KEY }}
+          script: |
+            cd /opt/dotevolve/repos/govnix-api
+            git pull origin ${{ github.ref_name }}
+
+            cd /opt/dotevolve
+            PROFILE="${{ github.ref_name == 'master' && 'prod' || 'dev' }}"
+            ENV_FILE="/opt/dotevolve/.env.${PROFILE}"
+            SERVICE="govnix-api"
+            if [ "$PROFILE" == "dev" ]; then
+              SERVICE="${SERVICE}-dev"
+            fi
+
+            PYTHON_CMD="python3"
+            if [[ -x "/home/ubuntu/lib/oracle-cli/bin/python3" ]]; then
+              PYTHON_CMD="/home/ubuntu/lib/oracle-cli/bin/python3"
+            elif [[ -x "/home/ubuntu/bin/python3" ]]; then
+              PYTHON_CMD="/home/ubuntu/bin/python3"
+            fi
+            if [[ -f "scripts/fetch-vault-secrets.py" ]]; then
+              echo "Dynamically fetching OCI Vault secrets into ephemeral memory..."
+              eval $("$PYTHON_CMD" scripts/fetch-vault-secrets.py "$ENV_FILE")
+            fi
+
+            docker compose -f docker-compose.yml -f docker-compose.supabase.yml --env-file $ENV_FILE --profile $PROFILE build --build-arg NPM_TOKEN=$NPM_TOKEN $SERVICE
+
+            # Remove old api-gateway container to prevent port collision on 3001
+            docker rm -f dotevolve-govnix-api-gateway-1 dotevolve-govnix-api-gateway-dev-1 || true
+
+            docker compose -f docker-compose.yml -f docker-compose.supabase.yml --env-file $ENV_FILE --profile $PROFILE up -d --no-deps $SERVICE
+
+      - name: Health check
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.OCI_HOST }}
+          username: ${{ secrets.OCI_USER }}
+          key: ${{ secrets.OCI_SSH_KEY }}
+          script: |
+            cd /opt/dotevolve
+            PROFILE="${{ github.ref_name == 'master' && 'prod' || 'dev' }}"
+            ENV_FILE="/opt/dotevolve/.env.${PROFILE}"
+            SERVICE="govnix-api"
+            if [ "$PROFILE" == "dev" ]; then
+              SERVICE="${SERVICE}-dev"
+            fi
+
+            echo "Waiting for service to start inside container..."
+            for i in {1..10}; do
+              if docker compose -f docker-compose.yml -f docker-compose.supabase.yml --env-file $ENV_FILE --profile $PROFILE exec -T $SERVICE wget -qO- http://localhost:3000/health; then
+                echo -e "\nHealth check passed!"
+                exit 0
+              fi
+              echo "Retrying in 5 seconds..."
+              sleep 5
+            done
+            echo "Health check failed!"
+            exit 1
+
+      - name: Create CalVer tag
+        if: github.ref_name == 'master'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          YEAR=$(date +%Y)
+          MONTH=$(date +%m)
+          PREFIX="${YEAR}.${MONTH}"
+
+          # Find the highest existing PATCH for this YYYY.MM prefix
+          LATEST=$(git tag --list "${PREFIX}.*" | sort -t. -k3 -n | tail -1)
+
+          if [[ -z "$LATEST" ]]; then
+            PATCH="01"
+          else
+            CURRENT_PATCH=$(echo "$LATEST" | cut -d. -f3)
+            PATCH=$(printf "%02d" $((10#$CURRENT_PATCH + 1)))
+          fi
+
+          TAG="${PREFIX}.${PATCH}"
+          git tag "$TAG"
+          git push origin "$TAG"
