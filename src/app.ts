@@ -13,7 +13,7 @@ import taxonomyRoutes from './routes/taxonomies';
 
 // Initialize Sentry if DSN is provided
 initializeSentry({
-  dsn: process.env.SENTRY_DSN,
+  dsn: process.env.SENTRY_DSN || '',
   environment: process.env.NODE_ENV || 'development',
   release: 'perfxcel-api@1.0.0',
 });
