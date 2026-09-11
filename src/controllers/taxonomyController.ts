@@ -26,8 +26,8 @@ export const getTaxonomies = async (req: Request, res: Response) => {
 export const createTaxonomyItem = async (req: Request, res: Response) => {
   const { type } = req.params; // 'categories', 'cities', 'associations'
   
-  if (!['categories', 'cities', 'associations'].includes(type)) {
-    throw new AppError('Invalid taxonomy type', 400);
+  if (!['categories', 'cities', 'associations'].includes(type as string)) {
+    throw new AppError('Invalid taxonomy type', 400, ErrorCategory.VALIDATION);
   }
 
   const { data, error } = await supabase
@@ -49,7 +49,7 @@ export const createTaxonomyItem = async (req: Request, res: Response) => {
 export const updateTaxonomyItem = async (req: Request, res: Response) => {
   const { type, id } = req.params;
 
-  if (!['categories', 'cities', 'associations'].includes(type)) {
+  if (!['categories', 'cities', 'associations'].includes(type as string)) {
     throw new AppError('Invalid taxonomy type', 400, ErrorCategory.VALIDATION);
   }
 
@@ -73,7 +73,7 @@ export const updateTaxonomyItem = async (req: Request, res: Response) => {
 export const deleteTaxonomyItem = async (req: Request, res: Response) => {
   const { type, id } = req.params;
 
-  if (!['categories', 'cities', 'associations'].includes(type)) {
+  if (!['categories', 'cities', 'associations'].includes(type as string)) {
     throw new AppError('Invalid taxonomy type', 400, ErrorCategory.VALIDATION);
   }
 
