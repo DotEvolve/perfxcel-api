@@ -21,4 +21,4 @@ RUN npm prune --omit=dev
 
 EXPOSE 3000
 
-CMD ["node", "dist/api/index.js"]
+CMD ["node", "dist/server.js"]
