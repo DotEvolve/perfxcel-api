@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # Prune dev dependencies after build
-RUN npm prune --omit=dev
+RUN npm prune --omit=dev --legacy-peer-deps
 
 EXPOSE 3000
 
