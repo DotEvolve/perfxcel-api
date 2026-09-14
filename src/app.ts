@@ -10,6 +10,7 @@ import {
 } from "@dotevolve/error-utils";
 import courseRoutes from "./routes/courses";
 import taxonomyRoutes from "./routes/taxonomies";
+import interestRoutes from "./routes/interests";
 
 // Initialize Sentry if DSN is provided
 initializeSentry({
@@ -38,6 +39,7 @@ app.get("/health", (req, res) => {
 // API Routes
 app.use("/api/v1/courses", courseRoutes);
 app.use("/api/v1/taxonomies", taxonomyRoutes);
+app.use("/api/v1/interests", interestRoutes);
 
 // Sentry Error Handler must be before any other error middleware and after all controllers
 setupSentryErrorHandler(app);

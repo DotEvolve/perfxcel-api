@@ -6,6 +6,7 @@ import {
   createCourse,
   updateCourse,
   deleteCourse,
+  registerInterest,
 } from "../controllers/courseController";
 
 const router = Router();
@@ -13,6 +14,7 @@ const router = Router();
 // Public routes
 router.get("/", asyncHandler(getCourses));
 router.get("/:id", asyncHandler(getCourse));
+router.post("/:id/interest", asyncHandler(registerInterest));
 
 // Admin routes (In future we can add a requireAdmin middleware here)
 // For MVP, we will rely on the service role key bypassing RLS, or we can use Supabase auth middleware.

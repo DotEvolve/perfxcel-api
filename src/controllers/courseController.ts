@@ -101,3 +101,58 @@ export const deleteCourse = async (req: Request, res: Response) => {
 
   res.status(204).send();
 };
+
+export const registerInterest = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, email, phone, company, turnstileToken } = req.body;
+
+  if (!turnstileToken) {
+    throw new AppError("Turnstile token is missing", 400, ErrorCategory.VALIDATION);
+  }
+
+  const expectedHostnames = new Set(
+    (process.env.VITE_TURNSTILE_HOSTNAMES ?? "localhost,127.0.0.1,dev.perfxcel.com,perfxcel.com")
+      .split(",")
+      .map((hostname) => hostname.trim())
+      .filter(Boolean),
+  );
+
+  let result;
+  try {
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        secret: process.env.VITE_TURNSTILE_SECRET_KEY || "",
+        response: turnstileToken,
+        remoteip: req.ip || "",
+      }),
+    });
+    if (!r.ok) throw new Error(`siteverify ${r.status}`);
+    result = await r.json();
+  } catch (err) {
+    throw new AppError("Failed to verify Turnstile token", 500, ErrorCategory.SYSTEM);
+  }
+
+  if (
+    !result.success ||
+    !expectedHostnames.has(result.hostname)
+  ) {
+    throw new AppError("Invalid Turnstile token", 403, ErrorCategory.AUTHENTICATION);
+  }
+
+  const { data, error } = await supabase
+    .from("course_interests")
+    .insert([{ course_id: id, name, email, phone, company }])
+    .select()
+    .single();
+
+  if (error) {
+    throw new AppError(error.message, 400, ErrorCategory.VALIDATION);
+  }
+
+  res.status(201).json({
+    status: "success",
+    data,
+  });
+};
