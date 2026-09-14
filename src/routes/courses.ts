@@ -7,6 +7,7 @@ import {
   updateCourse,
   deleteCourse,
   registerInterest,
+  bulkUpdateCourses,
 } from "../controllers/courseController";
 
 const router = Router();
@@ -21,6 +22,7 @@ router.post("/:id/interest", asyncHandler(registerInterest));
 // For now they are open to simplify MVP, or we can just assume they will only be called from authenticated admin frontend.
 router.post("/", asyncHandler(createCourse));
 router.put("/:id", asyncHandler(updateCourse));
+router.patch("/bulk", asyncHandler(bulkUpdateCourses));
 router.delete("/:id", asyncHandler(deleteCourse));
 
 export default router;

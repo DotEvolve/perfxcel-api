@@ -8,10 +8,35 @@ import path from "path";
 import nodemailer from "nodemailer";
 
 export const getEnrollments = async (req: Request, res: Response) => {
-  const { data, error } = await supabase
+  const { status, search, sort, page, limit } = req.query;
+
+  let query = supabase
     .from("enrollments")
-    .select("*, course_interests(name, email, courses(title))")
-    .order("created_at", { ascending: false });
+    .select("*, course_interests!inner(name, email, courses(title))", { count: "exact" });
+
+  if (status) {
+    const statuses = Array.isArray(status) ? status : [status];
+    query = query.in("status", statuses);
+  }
+
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`, { foreignTable: "course_interests" });
+  }
+
+  if (sort) {
+    const [field, order] = (sort as string).split(":");
+    query = query.order(field, { ascending: order === "asc" });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
+
+  const pageNum = parseInt(page as string) || 1;
+  const limitNum = parseInt(limit as string) || 20;
+  const from = (pageNum - 1) * limitNum;
+  const to = from + limitNum - 1;
+  query = query.range(from, to);
+
+  const { data, count, error } = await query;
 
   if (error) {
     throw new AppError(error.message, 500, ErrorCategory.SYSTEM);
@@ -20,6 +45,9 @@ export const getEnrollments = async (req: Request, res: Response) => {
   res.status(200).json({
     status: "success",
     results: data.length,
+    total: count,
+    page: pageNum,
+    limit: limitNum,
     data,
   });
 };

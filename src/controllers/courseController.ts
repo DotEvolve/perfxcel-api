@@ -3,17 +3,47 @@ import { supabase } from "../db/supabase";
 import { NotFoundError, AppError, ErrorCategory } from "@dotevolve/error-utils";
 
 export const getCourses = async (req: Request, res: Response) => {
-  const { category_id, city_id, association_id } = req.query;
+  const { category_id, city_id, association_id, delivery_mode_id, search, sort, page, limit } = req.query;
 
   let query = supabase
     .from("courses")
-    .select("*, categories(*), cities(*), associations(*)");
+    .select("*, categories(*), cities(*), associations(*), delivery_modes(*)", { count: "exact" });
 
-  if (category_id) query = query.eq("category_id", category_id);
-  if (city_id) query = query.eq("city_id", city_id);
-  if (association_id) query = query.eq("association_id", association_id);
+  if (category_id) {
+    const ids = Array.isArray(category_id) ? category_id : [category_id];
+    query = query.in("category_id", ids);
+  }
+  if (city_id) {
+    const ids = Array.isArray(city_id) ? city_id : [city_id];
+    query = query.in("city_id", ids);
+  }
+  if (association_id) {
+    const ids = Array.isArray(association_id) ? association_id : [association_id];
+    query = query.in("association_id", ids);
+  }
+  if (delivery_mode_id) {
+    const ids = Array.isArray(delivery_mode_id) ? delivery_mode_id : [delivery_mode_id];
+    query = query.in("delivery_mode_id", ids);
+  }
 
-  const { data, error } = await query.order("created_at", { ascending: false });
+  if (search) {
+    query = query.ilike("title", `%${search}%`);
+  }
+
+  if (sort) {
+    const [field, order] = (sort as string).split(":");
+    query = query.order(field, { ascending: order === "asc" });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
+
+  const pageNum = parseInt(page as string) || 1;
+  const limitNum = parseInt(limit as string) || 20;
+  const from = (pageNum - 1) * limitNum;
+  const to = from + limitNum - 1;
+  query = query.range(from, to);
+
+  const { data, count, error } = await query;
 
   if (error) {
     throw new AppError(error.message, 500, ErrorCategory.SYSTEM);
@@ -22,6 +52,9 @@ export const getCourses = async (req: Request, res: Response) => {
   res.status(200).json({
     status: "success",
     results: data.length,
+    total: count,
+    page: pageNum,
+    limit: limitNum,
     data,
   });
 };
@@ -31,7 +64,7 @@ export const getCourse = async (req: Request, res: Response) => {
 
   const { data, error } = await supabase
     .from("courses")
-    .select("*, categories(*), cities(*), associations(*)")
+    .select("*, categories(*), cities(*), associations(*), delivery_modes(*)")
     .eq("id", id)
     .single();
 
@@ -82,6 +115,28 @@ export const updateCourse = async (req: Request, res: Response) => {
 
   if (!data) {
     throw new NotFoundError("Course not found");
+  }
+
+  res.status(200).json({
+    status: "success",
+    data,
+  });
+};
+
+export const bulkUpdateCourses = async (req: Request, res: Response) => {
+  const { ids, updates } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    throw new AppError("Invalid or empty ids array", 400, ErrorCategory.VALIDATION);
+  }
+
+  const { data, error } = await supabase
+    .from("courses")
+    .update(updates)
+    .in("id", ids)
+    .select();
+
+  if (error) {
+    throw new AppError(error.message, 400, ErrorCategory.VALIDATION);
   }
 
   res.status(200).json({
