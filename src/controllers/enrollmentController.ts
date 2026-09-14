@@ -234,17 +234,17 @@ async function generateAndIssueCertificate(enrollment: any, interest: any) {
 
 async function sendCertificateEmail(to: string, name: string, pdfUrl: string, pdfBuffer: Buffer, credentialId: string) {
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "localhost",
-    port: parseInt(process.env.SMTP_PORT || "587", 10),
-    secure: process.env.SMTP_PORT === "465", // true for 465, false for other ports
+    host: process.env.PERFXCEL_CERT_SMTP_HOST || "localhost",
+    port: parseInt(process.env.PERFXCEL_CERT_SMTP_PORT || "587", 10),
+    secure: process.env.PERFXCEL_CERT_SMTP_PORT === "465", // true for 465, false for other ports
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: process.env.PERFXCEL_CERT_SMTP_USER,
+      pass: process.env.PERFXCEL_CERT_SMTP_PASS,
     },
   });
 
   const mailOptions = {
-    from: process.env.SMTP_FROM || "Perfxcel <no-reply@perfxcel.com>",
+    from: process.env.PERFXCEL_CERT_SMTP_FROM || "Perfxcel <no-reply@perfxcel.com>",
     to,
     subject: "Your Perfxcel Certificate is Ready",
     html: `
