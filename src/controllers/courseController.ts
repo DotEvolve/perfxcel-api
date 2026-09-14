@@ -111,7 +111,7 @@ export const registerInterest = async (req: Request, res: Response) => {
   }
 
   const expectedHostnames = new Set(
-    (process.env.VITE_TURNSTILE_HOSTNAMES ?? "localhost,127.0.0.1,dev.perfxcel.com,perfxcel.com")
+    (process.env.VITE_PERFXCEL_TURNSTILE_HOSTNAMES ?? "dev.perfxcel.com,perfxcel.com")
       .split(",")
       .map((hostname) => hostname.trim())
       .filter(Boolean),
@@ -123,7 +123,7 @@ export const registerInterest = async (req: Request, res: Response) => {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        secret: process.env.VITE_TURNSTILE_SECRET_KEY || "",
+        secret: process.env.VITE_PERFXCEL_TURNSTILE_SECRET_KEY || "",
         response: turnstileToken,
         remoteip: req.ip || "",
       }),
