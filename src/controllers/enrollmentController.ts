@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "../db/supabase";
 import { AppError, ErrorCategory, ConflictError, NotFoundError } from "@dotevolve/error-utils";
 import QRCode from "qrcode";
@@ -205,7 +206,8 @@ async function generateAndIssueCertificate(enrollment: any, interest: any) {
   const pdfBytes = await pdfDoc.save();
 
   // 4. Upload to Supabase Storage
-  const { data: uploadData, error: uploadError } = await supabase.storage
+  const storageClient = createClient(process.env.SUPABASE_URL || "", process.env.SUPABASE_SERVICE_ROLE_KEY || "");
+  const { data: uploadData, error: uploadError } = await storageClient.storage
     .from("certificates")
     .upload(`${credentialId}.pdf`, Buffer.from(pdfBytes), { contentType: "application/pdf", upsert: false });
     
@@ -213,7 +215,7 @@ async function generateAndIssueCertificate(enrollment: any, interest: any) {
     throw new AppError(`Storage error: ${uploadError.message}`, 500, ErrorCategory.SYSTEM);
   }
 
-  const { data: { publicUrl } } = supabase.storage.from("certificates").getPublicUrl(`${credentialId}.pdf`);
+  const { data: { publicUrl } } = storageClient.storage.from("certificates").getPublicUrl(`${credentialId}.pdf`);
 
   // 5. Insert certificate record
   const { error: certError } = await supabase.from("certificates").insert({
