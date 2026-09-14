@@ -215,11 +215,8 @@ async function generateAndIssueCertificate(enrollment: any, interest: any) {
     throw new AppError(`Storage error: ${uploadError.message}`, 500, ErrorCategory.SYSTEM);
   }
 
-  const { data: { publicUrl: internalUrl } } = storageClient.storage.from("certificates").getPublicUrl(`${credentialId}.pdf`);
-  const publicUrl = internalUrl.replace(
-    process.env.SUPABASE_URL || "",
-    process.env.SUPABASE_PUBLIC_URL || process.env.SUPABASE_URL || ""
-  );
+  // Instead of using Supabase's public URL, generate a URL that points to our own proxy route
+  const publicUrl = `${process.env.PERFXCEL_API_URL}/api/v1/verify/${credentialId}/pdf`;
 
   // 5. Insert certificate record
   const { error: certError } = await supabase.from("certificates").insert({

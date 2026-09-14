@@ -62,3 +62,37 @@ export const verifyCertificate = async (req: Request, res: Response) => {
     }
   });
 };
+
+export const downloadCertificate = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  // Verify the certificate exists first
+  const { data, error } = await supabase
+    .from("certificates")
+    .select("credential_id")
+    .eq("credential_id", id)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new AppError("Certificate not found", 404, ErrorCategory.VALIDATION);
+  }
+
+  // Fetch the PDF from internal Supabase storage
+  const storageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/certificates/${id}.pdf`;
+  
+  try {
+    const response = await fetch(storageUrl);
+    if (!response.ok) {
+      throw new Error(`Storage returned ${response.status}`);
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="certificate_${id}.pdf"`);
+    
+    const buffer = await response.arrayBuffer();
+    res.send(Buffer.from(buffer));
+  } catch (err) {
+    throw new AppError("Failed to fetch certificate", 500, ErrorCategory.SYSTEM);
+  }
+};
+
