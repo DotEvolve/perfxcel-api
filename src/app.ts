@@ -11,6 +11,8 @@ import {
 import courseRoutes from "./routes/courses";
 import taxonomyRoutes from "./routes/taxonomies";
 import interestRoutes from "./routes/interests";
+import enrollmentRoutes from "./routes/enrollments";
+import verifyRoutes from "./routes/verify";
 
 // Initialize Sentry if DSN is provided
 initializeSentry({
@@ -40,6 +42,8 @@ app.get("/health", (req, res) => {
 app.use("/api/v1/courses", courseRoutes);
 app.use("/api/v1/taxonomies", taxonomyRoutes);
 app.use("/api/v1/interests", interestRoutes);
+app.use("/api/v1/enrollments", enrollmentRoutes);
+app.use("/api/v1/verify", verifyRoutes);
 
 // Sentry Error Handler must be before any other error middleware and after all controllers
 setupSentryErrorHandler(app);
