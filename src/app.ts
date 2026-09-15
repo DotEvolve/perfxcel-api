@@ -14,6 +14,7 @@ import interestRoutes from "./routes/interests";
 import enrollmentRoutes from "./routes/enrollments";
 import verifyRoutes from "./routes/verify";
 import metricsRoutes from "./routes/metrics";
+import auditLogsRoutes from "./routes/auditLogs";
 
 // Initialize Sentry if DSN is provided
 initializeSentry({
@@ -46,6 +47,7 @@ app.use("/api/v1/interests", interestRoutes);
 app.use("/api/v1/enrollments", enrollmentRoutes);
 app.use("/api/v1/verify", verifyRoutes);
 app.use("/api/v1/metrics", metricsRoutes);
+app.use("/api/v1/audit-logs", auditLogsRoutes);
 
 // Sentry Error Handler must be before any other error middleware and after all controllers
 setupSentryErrorHandler(app);
