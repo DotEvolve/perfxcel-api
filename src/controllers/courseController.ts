@@ -3,8 +3,33 @@ import { supabase } from "../db/supabase";
 import { NotFoundError, AppError, ErrorCategory } from "@dotevolve/error-utils";
 import { computeIsBlended } from "../utils/course";
 
-const fetchCourseWithRelations = async (id: string) => {
-  const { data, error } = await supabase
+const generateUniqueSlug = async (baseText: string, currentId?: string): Promise<string> => {
+  const baseSlug = baseText.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (true) {
+    let query = supabase.from("courses").select("id").eq("slug", slug);
+    if (currentId) {
+      query = query.neq("id", currentId);
+    }
+    const { data, error } = await query;
+    if (error) throw new AppError("Error checking slug uniqueness", 500, ErrorCategory.SYSTEM);
+    
+    if (!data || data.length === 0) {
+      break;
+    }
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  return slug;
+};
+
+const fetchCourseWithRelations = async (identifier: string) => {
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+
+  let query = supabase
     .from("courses")
     .select(`
       *,
@@ -13,9 +38,15 @@ const fetchCourseWithRelations = async (id: string) => {
       course_associations(associations(*)),
       course_delivery_modes(delivery_modes(*)),
       course_schedules(*)
-    `)
-    .eq("id", id)
-    .single();
+    `);
+
+  if (isUUID) {
+    query = query.eq("id", identifier);
+  } else {
+    query = query.eq("slug", identifier);
+  }
+
+  const { data, error } = await query.single();
 
   if (error) throw error;
   if (!data) return null;
@@ -134,11 +165,13 @@ export const getCourse = async (req: Request, res: Response) => {
 };
 
 export const createCourse = async (req: Request, res: Response) => {
-  const { category_ids, city_ids, association_ids, delivery_mode_ids, schedules, ...coreFields } = req.body;
+  const { category_ids, city_ids, association_ids, delivery_mode_ids, schedules, slug: inputSlug, ...coreFields } = req.body;
+
+  const finalSlug = await generateUniqueSlug(inputSlug || coreFields.title);
 
   const { data: course, error } = await supabase
     .from("courses")
-    .insert([coreFields])
+    .insert([{ ...coreFields, slug: finalSlug }])
     .select()
     .single();
 
@@ -164,11 +197,13 @@ export const createCourse = async (req: Request, res: Response) => {
 
 export const updateCourse = async (req: Request, res: Response) => {
   const id = req.params.id as string;
-  const { category_ids, city_ids, association_ids, delivery_mode_ids, schedules, ...coreFields } = req.body;
+  const { category_ids, city_ids, association_ids, delivery_mode_ids, schedules, slug: inputSlug, ...coreFields } = req.body;
+
+  const finalSlug = await generateUniqueSlug(inputSlug || coreFields.title, id);
 
   const { data: course, error } = await supabase
     .from("courses")
-    .update(coreFields)
+    .update({ ...coreFields, slug: finalSlug })
     .eq("id", id)
     .select()
     .single();
