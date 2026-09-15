@@ -1,11 +1,16 @@
 import { Router } from "express";
 import { asyncHandler } from "@dotevolve/error-utils";
-import { getEnrollments, createEnrollment, updateEnrollmentStatus } from "../controllers/enrollmentController";
+import { requireAuth } from "../middleware/auth";
+import {
+  getEnrollments,
+  createEnrollment,
+  updateEnrollmentStatus,
+} from "../controllers/enrollmentController";
 
 const router = Router();
 
-router.get("/", asyncHandler(getEnrollments));
-router.post("/", asyncHandler(createEnrollment));
-router.patch("/:id", asyncHandler(updateEnrollmentStatus));
+router.get("/", requireAuth, asyncHandler(getEnrollments));
+router.post("/", requireAuth, asyncHandler(createEnrollment));
+router.patch("/:id", requireAuth, asyncHandler(updateEnrollmentStatus));
 
 export default router;
