@@ -259,7 +259,7 @@ async function sendCertificateEmail(to: string, name: string, pdfUrl: string, pd
     `,
     attachments: [
       {
-        filename: \`${credentialId}.pdf\`,
+        filename: `${credentialId}.pdf`,
         content: pdfBuffer,
         contentType: 'application/pdf'
       }
