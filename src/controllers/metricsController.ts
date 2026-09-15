@@ -3,7 +3,7 @@ import { supabase } from "../db/supabase";
 import { AppError, ErrorCategory } from "@dotevolve/error-utils";
 
 // ---------------------------------------------------------------------------
-// In-memory cache — interim solution until Redis is wired up (see GitHub #3)
+// In-memory cache — interim solution until Redis is wired up (see GitHub #3) 
 // ---------------------------------------------------------------------------
 const CACHE_TTL_MS = 300_000; // 5 minutes
 
