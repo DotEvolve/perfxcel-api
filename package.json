@@ -7,8 +7,8 @@
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "test": "jest --forceExit",
-    "test:coverage": "jest --coverage --forceExit"
+    "test": "SUPABASE_URL=http://localhost SUPABASE_SERVICE_ROLE_KEY=dummy jest --forceExit",
+    "test:coverage": "SUPABASE_URL=http://localhost SUPABASE_SERVICE_ROLE_KEY=dummy jest --coverage --forceExit"
   },
   "dependencies": {
     "@dotevolve/core": "^1.0.18",
