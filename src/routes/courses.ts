@@ -16,9 +16,11 @@ const router = Router();
 // Public — tenant-facing interest registration
 router.post("/:id/interest", asyncHandler(registerInterest));
 
+// Public routes
+router.get("/", asyncHandler(getCourses));
+router.get("/:id", asyncHandler(getCourse));
+
 // Admin routes — require JWT
-router.get("/", requireAuth, asyncHandler(getCourses));
-router.get("/:id", requireAuth, asyncHandler(getCourse));
 router.post("/", requireAuth, asyncHandler(createCourse));
 router.put("/:id", requireAuth, asyncHandler(updateCourse));
 router.patch("/bulk", requireAuth, asyncHandler(bulkUpdateCourses));

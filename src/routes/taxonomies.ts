@@ -10,7 +10,7 @@ import {
 
 const router = Router();
 
-router.get("/", requireAuth, asyncHandler(getTaxonomies));
+router.get("/", asyncHandler(getTaxonomies));
 router.post("/:type", requireAuth, asyncHandler(createTaxonomyItem));
 router.put("/:type/:id", requireAuth, asyncHandler(updateTaxonomyItem));
 router.delete("/:type/:id", requireAuth, asyncHandler(deleteTaxonomyItem));
