@@ -1,29 +1,73 @@
 import { Request, Response } from "express";
 import { supabase } from "../db/supabase";
 import { NotFoundError, AppError, ErrorCategory } from "@dotevolve/error-utils";
+import { computeIsBlended } from "../utils/course";
+
+const fetchCourseWithRelations = async (id: string) => {
+  const { data, error } = await supabase
+    .from("courses")
+    .select(`
+      *,
+      course_categories(categories(*)),
+      course_cities(cities(*)),
+      course_associations(associations(*)),
+      course_delivery_modes(delivery_modes(*)),
+      course_schedules(*)
+    `)
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    ...data,
+    categories: data.course_categories?.map((j: any) => j.categories).filter(Boolean),
+    cities: data.course_cities?.map((j: any) => j.cities).filter(Boolean),
+    associations: data.course_associations?.map((j: any) => j.associations).filter(Boolean),
+    delivery_modes: data.course_delivery_modes?.map((j: any) => j.delivery_modes).filter(Boolean),
+    is_blended: computeIsBlended(data.course_delivery_modes?.map((j: any) => j.delivery_modes?.name)),
+    course_categories: undefined,
+    course_cities: undefined,
+    course_associations: undefined,
+    course_delivery_modes: undefined,
+  };
+};
 
 export const getCourses = async (req: Request, res: Response) => {
-  const { category_id, city_id, association_id, delivery_mode_id, search, sort, page, limit } = req.query;
+  const { category_ids, city_ids, association_ids, delivery_mode_ids, search, sort, page, limit } = req.query;
+
+  const innerCat = category_ids ? "!inner" : "";
+  const innerCity = city_ids ? "!inner" : "";
+  const innerAssoc = association_ids ? "!inner" : "";
+  const innerDelivery = delivery_mode_ids ? "!inner" : "";
 
   let query = supabase
     .from("courses")
-    .select("*, categories(*), cities(*), associations(*), delivery_modes(*)", { count: "exact" });
+    .select(`
+      *,
+      course_categories${innerCat}(category_id, categories(*)),
+      course_cities${innerCity}(city_id, cities(*)),
+      course_associations${innerAssoc}(association_id, associations(*)),
+      course_delivery_modes${innerDelivery}(delivery_mode_id, delivery_modes(*)),
+      course_schedules(*)
+    `, { count: "exact" });
 
-  if (category_id) {
-    const ids = Array.isArray(category_id) ? category_id : [category_id];
-    query = query.in("category_id", ids);
+  if (category_ids) {
+    const ids = Array.isArray(category_ids) ? category_ids : [category_ids];
+    query = query.in("course_categories.category_id", ids);
   }
-  if (city_id) {
-    const ids = Array.isArray(city_id) ? city_id : [city_id];
-    query = query.in("city_id", ids);
+  if (city_ids) {
+    const ids = Array.isArray(city_ids) ? city_ids : [city_ids];
+    query = query.in("course_cities.city_id", ids);
   }
-  if (association_id) {
-    const ids = Array.isArray(association_id) ? association_id : [association_id];
-    query = query.in("association_id", ids);
+  if (association_ids) {
+    const ids = Array.isArray(association_ids) ? association_ids : [association_ids];
+    query = query.in("course_associations.association_id", ids);
   }
-  if (delivery_mode_id) {
-    const ids = Array.isArray(delivery_mode_id) ? delivery_mode_id : [delivery_mode_id];
-    query = query.in("delivery_mode_id", ids);
+  if (delivery_mode_ids) {
+    const ids = Array.isArray(delivery_mode_ids) ? delivery_mode_ids : [delivery_mode_ids];
+    query = query.in("course_delivery_modes.delivery_mode_id", ids);
   }
 
   if (search) {
@@ -49,43 +93,52 @@ export const getCourses = async (req: Request, res: Response) => {
     throw new AppError(error.message, 500, ErrorCategory.SYSTEM);
   }
 
+  const transformed = data.map(row => ({
+    ...row,
+    categories: row.course_categories?.map((j: any) => j.categories).filter(Boolean),
+    cities: row.course_cities?.map((j: any) => j.cities).filter(Boolean),
+    associations: row.course_associations?.map((j: any) => j.associations).filter(Boolean),
+    delivery_modes: row.course_delivery_modes?.map((j: any) => j.delivery_modes).filter(Boolean),
+    is_blended: computeIsBlended(row.course_delivery_modes?.map((j: any) => j.delivery_modes?.name)),
+    course_categories: undefined,
+    course_cities: undefined,
+    course_associations: undefined,
+    course_delivery_modes: undefined,
+  }));
+
   res.status(200).json({
     status: "success",
-    results: data.length,
+    results: transformed.length,
     total: count,
     page: pageNum,
     limit: limitNum,
-    data,
+    data: transformed,
   });
 };
 
 export const getCourse = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
-  const { data, error } = await supabase
-    .from("courses")
-    .select("*, categories(*), cities(*), associations(*), delivery_modes(*)")
-    .eq("id", id)
-    .single();
+  try {
+    const fullCourse = await fetchCourseWithRelations(id);
+    if (!fullCourse) throw new NotFoundError("Course not found");
 
-  if (error) {
-    throw new AppError(error.message, 500, ErrorCategory.SYSTEM);
+    res.status(200).json({
+      status: "success",
+      data: fullCourse,
+    });
+  } catch (err: any) {
+    if (err instanceof AppError) throw err;
+    throw new AppError(err.message, 500, ErrorCategory.SYSTEM);
   }
-
-  if (!data) {
-    throw new NotFoundError("Course not found");
-  }
-
-  res.status(200).json({
-    status: "success",
-    data,
-  });
 };
 
 export const createCourse = async (req: Request, res: Response) => {
-  const { data, error } = await supabase
+  const { category_ids, city_ids, association_ids, delivery_mode_ids, schedules, ...coreFields } = req.body;
+
+  const { data: course, error } = await supabase
     .from("courses")
-    .insert([req.body])
+    .insert([coreFields])
     .select()
     .single();
 
@@ -93,18 +146,29 @@ export const createCourse = async (req: Request, res: Response) => {
     throw new AppError(error.message, 400, ErrorCategory.VALIDATION);
   }
 
+  await Promise.all([
+    category_ids?.length > 0 && supabase.from("course_categories").insert(category_ids.map((id: string) => ({ course_id: course.id, category_id: id }))),
+    city_ids?.length > 0 && supabase.from("course_cities").insert(city_ids.map((id: string) => ({ course_id: course.id, city_id: id }))),
+    association_ids?.length > 0 && supabase.from("course_associations").insert(association_ids.map((id: string) => ({ course_id: course.id, association_id: id }))),
+    delivery_mode_ids?.length > 0 && supabase.from("course_delivery_modes").insert(delivery_mode_ids.map((id: string) => ({ course_id: course.id, delivery_mode_id: id }))),
+    schedules?.length > 0 && supabase.from("course_schedules").insert(schedules.map((s: any) => ({ ...s, course_id: course.id }))),
+  ].filter(Boolean));
+
+  const full = await fetchCourseWithRelations(course.id);
+
   res.status(201).json({
     status: "success",
-    data,
+    data: full,
   });
 };
 
 export const updateCourse = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
+  const { category_ids, city_ids, association_ids, delivery_mode_ids, schedules, ...coreFields } = req.body;
 
-  const { data, error } = await supabase
+  const { data: course, error } = await supabase
     .from("courses")
-    .update(req.body)
+    .update(coreFields)
     .eq("id", id)
     .select()
     .single();
@@ -113,13 +177,38 @@ export const updateCourse = async (req: Request, res: Response) => {
     throw new AppError(error.message, 400, ErrorCategory.VALIDATION);
   }
 
-  if (!data) {
+  if (!course) {
     throw new NotFoundError("Course not found");
   }
 
+  await Promise.all([
+    supabase.from("course_categories").delete().eq("course_id", id),
+    supabase.from("course_cities").delete().eq("course_id", id),
+    supabase.from("course_associations").delete().eq("course_id", id),
+    supabase.from("course_delivery_modes").delete().eq("course_id", id),
+    supabase.from("course_schedules").delete().eq("course_id", id),
+  ]);
+
+  await Promise.all([
+    category_ids?.length > 0 && supabase.from("course_categories").insert(category_ids.map((cid: string) => ({ course_id: id, category_id: cid }))),
+    city_ids?.length > 0 && supabase.from("course_cities").insert(city_ids.map((cid: string) => ({ course_id: id, city_id: cid }))),
+    association_ids?.length > 0 && supabase.from("course_associations").insert(association_ids.map((cid: string) => ({ course_id: id, association_id: cid }))),
+    delivery_mode_ids?.length > 0 && supabase.from("course_delivery_modes").insert(delivery_mode_ids.map((cid: string) => ({ course_id: id, delivery_mode_id: cid }))),
+    schedules?.length > 0 && supabase.from("course_schedules").insert(schedules.map((s: any) => ({
+      course_id: id,
+      start_date: s.start_date,
+      end_date: s.end_date,
+      location: s.location,
+      method: s.method,
+      status: s.status
+    }))),
+  ].filter(Boolean));
+
+  const full = await fetchCourseWithRelations(id);
+
   res.status(200).json({
     status: "success",
-    data,
+    data: full,
   });
 };
 
