@@ -1,24 +1,30 @@
-import { Router } from 'express';
-import { asyncHandler } from '@dotevolve/error-utils';
+import { Router } from "express";
+import { asyncHandler } from "@dotevolve/error-utils";
+import { requireAuth } from "../middleware/auth";
+import { requirePerfxcelTenant } from "../middleware/tenant";
 import {
   getCourses,
   getCourse,
   createCourse,
   updateCourse,
   deleteCourse,
-} from '../controllers/courseController';
+  registerInterest,
+  bulkUpdateCourses,
+} from "../controllers/courseController";
 
 const router = Router();
 
-// Public routes
-router.get('/', asyncHandler(getCourses));
-router.get('/:id', asyncHandler(getCourse));
+// Public — tenant-facing interest registration
+router.post("/:id/interest", asyncHandler(registerInterest));
 
-// Admin routes (In future we can add a requireAdmin middleware here)
-// For MVP, we will rely on the service role key bypassing RLS, or we can use Supabase auth middleware.
-// For now they are open to simplify MVP, or we can just assume they will only be called from authenticated admin frontend.
-router.post('/', asyncHandler(createCourse));
-router.put('/:id', asyncHandler(updateCourse));
-router.delete('/:id', asyncHandler(deleteCourse));
+// Public routes
+router.get("/", asyncHandler(getCourses));
+router.get("/:id", asyncHandler(getCourse));
+
+// Admin routes — require JWT
+router.post("/", requireAuth, requirePerfxcelTenant, asyncHandler(createCourse));
+router.put("/:id", requireAuth, requirePerfxcelTenant, asyncHandler(updateCourse));
+router.patch("/bulk", requireAuth, requirePerfxcelTenant, asyncHandler(bulkUpdateCourses));
+router.delete("/:id", requireAuth, requirePerfxcelTenant, asyncHandler(deleteCourse));
 
 export default router;

@@ -1,20 +1,19 @@
-import { Router } from 'express';
-import { asyncHandler } from '@dotevolve/error-utils';
+import { Router } from "express";
+import { asyncHandler } from "@dotevolve/error-utils";
+import { requireAuth } from "../middleware/auth";
+import { requirePerfxcelTenant } from "../middleware/tenant";
 import {
   getTaxonomies,
   createTaxonomyItem,
   updateTaxonomyItem,
   deleteTaxonomyItem,
-} from '../controllers/taxonomyController';
+} from "../controllers/taxonomyController";
 
 const router = Router();
 
-// Public routes
-router.get('/', asyncHandler(getTaxonomies));
-
-// Admin routes
-router.post('/:type', asyncHandler(createTaxonomyItem));
-router.put('/:type/:id', asyncHandler(updateTaxonomyItem));
-router.delete('/:type/:id', asyncHandler(deleteTaxonomyItem));
+router.get("/", asyncHandler(getTaxonomies));
+router.post("/:type", requireAuth, requirePerfxcelTenant, asyncHandler(createTaxonomyItem));
+router.put("/:type/:id", requireAuth, requirePerfxcelTenant, asyncHandler(updateTaxonomyItem));
+router.delete("/:type/:id", requireAuth, requirePerfxcelTenant, asyncHandler(deleteTaxonomyItem));
 
 export default router;
