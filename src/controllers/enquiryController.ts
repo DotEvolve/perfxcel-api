@@ -129,7 +129,7 @@ export const submitContact = async (req: Request, res: Response) => {
 
     await transporter.sendMail({
       from: process.env.PERFXCEL_CERT_SMTP_FROM || "Perfxcel <no-reply@perfxcel.com>",
-      to: "admin@perfxcel.com",
+      to: process.env.PERFXCEL_ADMIN_EMAIL || process.env.PERFXCEL_CERT_SMTP_USER || "admin@perfxcel.com",
       subject: "New Enquiry Received - Perfxcel",
       text: `You have received a new enquiry:\n\nName: ${name}\nEmail: ${email}\nCompany: ${company || 'N/A'}\nMessage: ${message}`,
     });

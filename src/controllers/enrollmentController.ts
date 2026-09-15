@@ -268,7 +268,7 @@ async function sendCertificateEmail(to: string, name: string, pdfUrl: string, pd
 
   try {
     // If no real SMTP config is provided, we just log and skip instead of failing
-    if (process.env.SMTP_HOST) {
+    if (process.env.PERFXCEL_CERT_SMTP_HOST) {
       await transporter.sendMail(mailOptions);
     } else {
       console.log(`[Email Mock] Sent certificate to ${to} for credential ${credentialId}`);
