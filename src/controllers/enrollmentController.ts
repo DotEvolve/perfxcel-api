@@ -247,19 +247,19 @@ async function sendCertificateEmail(to: string, name: string, pdfUrl: string, pd
   const mailOptions = {
     from: process.env.PERFXCEL_CERT_SMTP_FROM || "Perfxcel <no-reply@perfxcel.com>",
     to,
-    subject: "Your Perfxcel Certificate is Ready",
+    subject: "Your PerfXcel Certificate is Ready",
     html: `
       <p>Dear ${name},</p>
       <p>Congratulations on achieving your certification!</p>
-      <p>Your official Perfxcel certificate is attached to this email. You can also view and download it at any time using the link below:</p>
+      <p>Your official PerfXcel certificate is attached to this email. You can also view and download it at any time using the link below:</p>
       <p><a href="${pdfUrl}">${pdfUrl}</a></p>
       <p>Your Credential ID is: <strong>${credentialId}</strong></p>
       <br/>
-      <p>Best regards,<br/>The Perfxcel Team</p>
+      <p>Best regards,<br/>The PerfXcel Team</p>
     `,
     attachments: [
       {
-        filename: 'certificate.pdf',
+        filename: \`${credentialId}.pdf\`,
         content: pdfBuffer,
         contentType: 'application/pdf'
       }
