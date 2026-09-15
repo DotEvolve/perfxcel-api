@@ -47,7 +47,7 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
     supabase.from("enrollments").select("*", count).eq("status", "dropped"),
     supabase.from("enrollments").select("*", count),
     supabase.from("certificates").select("*", count),
-    supabase.from("courses").select("id, categories(name)"),
+    supabase.from("courses").select("id, course_categories(categories(name))"),
     supabase.from("course_interests").select("id, courses(title)"),
     supabase.from("enrollments").select("status, course_interests(courses(title))"),
   ]);
@@ -70,8 +70,14 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
   // JS Aggregations for detailed lists
   const categoryCounts: Record<string, number> = {};
   allCourses.data?.forEach((c: any) => {
-    const catName = c.categories?.name ?? "Uncategorized";
-    categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
+    if (c.course_categories && c.course_categories.length > 0) {
+      c.course_categories.forEach((cc: any) => {
+        const catName = cc.categories?.name ?? "Uncategorized";
+        categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
+      });
+    } else {
+      categoryCounts["Uncategorized"] = (categoryCounts["Uncategorized"] || 0) + 1;
+    }
   });
   const topCategories = Object.entries(categoryCounts)
     .sort((a, b) => b[1] - a[1])
