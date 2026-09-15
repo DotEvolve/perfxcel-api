@@ -29,6 +29,7 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
     interestsNew, interestsContacted, interestsEnrolled, interestsRejected, interestsTotal,
     enrollmentsPending, enrollmentsInProgress, enrollmentsAchieved, enrollmentsDropped, enrollmentsTotal,
     certificatesTotal,
+    allCourses, allInterests, allEnrollments
   ] = await Promise.all([
     supabase.from("courses").select("*", count),
     supabase.from("categories").select("*", count),
@@ -46,6 +47,9 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
     supabase.from("enrollments").select("*", count).eq("status", "dropped"),
     supabase.from("enrollments").select("*", count),
     supabase.from("certificates").select("*", count),
+    supabase.from("courses").select("id, categories(name)"),
+    supabase.from("course_interests").select("id, courses(title)"),
+    supabase.from("enrollments").select("status, course_interests(courses(title))"),
   ]);
 
   // Check each result for errors, throw AppError if any query failed
@@ -53,7 +57,8 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
     courses, categories, cities, associations, deliveryModes,
     interestsNew, interestsContacted, interestsEnrolled, interestsRejected, interestsTotal,
     enrollmentsPending, enrollmentsInProgress, enrollmentsAchieved, enrollmentsDropped, enrollmentsTotal,
-    certificatesTotal
+    certificatesTotal,
+    allCourses, allInterests, allEnrollments
   ];
   
   for (const result of results) {
@@ -61,6 +66,44 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
       throw new AppError(result.error.message, 500, ErrorCategory.SYSTEM);
     }
   }
+
+  // JS Aggregations for detailed lists
+  const categoryCounts: Record<string, number> = {};
+  allCourses.data?.forEach((c: any) => {
+    const catName = c.categories?.name ?? "Uncategorized";
+    categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
+  });
+  const topCategories = Object.entries(categoryCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => ({ name, count }));
+
+  const interestCounts: Record<string, number> = {};
+  allInterests.data?.forEach((i: any) => {
+    const title = i.courses?.title ?? "Unknown Course";
+    interestCounts[title] = (interestCounts[title] || 0) + 1;
+  });
+  const mostDemanded = Object.entries(interestCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([title, count]) => ({ title, count }));
+
+  const completionStats: Record<string, { achieved: number; in_progress: number }> = {};
+  allEnrollments.data?.forEach((e: any) => {
+    const title = e.course_interests?.courses?.title ?? "Unknown Course";
+    if (!completionStats[title]) {
+      completionStats[title] = { achieved: 0, in_progress: 0 };
+    }
+    if (e.status === "achieved") completionStats[title].achieved++;
+    if (e.status === "in_progress") completionStats[title].in_progress++;
+  });
+  const topCompletions = Object.entries(completionStats)
+    .sort((a, b) => {
+      if (b[1].achieved !== a[1].achieved) return b[1].achieved - a[1].achieved;
+      return b[1].in_progress - a[1].in_progress;
+    })
+    .slice(0, 5)
+    .map(([title, stats]) => ({ title, ...stats }));
 
   const responseData = {
     courses: { total: courses.count ?? 0 },
@@ -87,6 +130,11 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
     certificates: {
       total: certificatesTotal.count ?? 0,
     },
+    detailed: {
+      topCategories,
+      mostDemanded,
+      topCompletions,
+    }
   };
 
   // Populate cache
