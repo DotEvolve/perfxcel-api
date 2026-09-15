@@ -7,8 +7,8 @@
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "test": "SUPABASE_URL=http://localhost SUPABASE_SERVICE_ROLE_KEY=dummy jest --forceExit",
-    "test:coverage": "SUPABASE_URL=http://localhost SUPABASE_SERVICE_ROLE_KEY=dummy jest --coverage --forceExit"
+    "test": "jest --forceExit",
+    "test:coverage": "jest --coverage --forceExit"
   },
   "dependencies": {
     "@dotevolve/core": "^1.0.18",
@@ -40,7 +40,8 @@
   },
   "jest": {
     "preset": "ts-jest",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "setupFiles": ["<rootDir>/jest.setup.js"]
   },
   "engines": {
     "node": "24.x"
