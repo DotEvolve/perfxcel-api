@@ -1,13 +1,19 @@
 import request from "supertest";
 import app from "../app";
 
-jest.mock("../db/supabase", () => ({
-  supabase: {
+jest.mock("../db/supabase", () => {
+  const mockChain = {
     from: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
-    order: jest.fn().mockResolvedValue({ data: [], error: null }),
-  },
-}));
+    eq: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    ilike: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    range: jest.fn().mockReturnThis(),
+    then: jest.fn((resolve) => resolve({ data: [], count: 0, error: null })),
+  };
+  return { supabase: mockChain };
+});
 
 describe("API Routes", () => {
   it("GET /health should return 200", async () => {

@@ -4,8 +4,8 @@ import { AuthenticationError, AuthorizationError } from "@dotevolve/error-utils"
 
 // A separate client targeting the `public` schema (no perfxcel schema override)
 const portalSupabase = createClient(
-  process.env.SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+  process.env.SUPABASE_URL || "http://localhost",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "dummy"
 );
 
 const supabaseConfigured =
