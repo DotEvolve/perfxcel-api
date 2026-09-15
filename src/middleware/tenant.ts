@@ -17,13 +17,10 @@ export const requirePerfxcelTenant = async (
   _res: Response,
   next: NextFunction
 ): Promise<void> => {
-  // Development bypass
   if (!supabaseConfigured) {
     console.warn(
-      "[requirePerfxcelTenant] Supabase not configured — bypassing tenant check (dev only)"
+      "[requirePerfxcelTenant] Supabase not configured — tenant checks may fail if DB is required"
     );
-    req.tenantId = "dev-perfxcel-tenant";
-    return next();
   }
 
   if (!req.user) {
