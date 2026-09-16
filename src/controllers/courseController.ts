@@ -66,7 +66,7 @@ const fetchCourseWithRelations = async (identifier: string) => {
 };
 
 export const getCourses = async (req: Request, res: Response) => {
-  const { category_ids, city_ids, association_ids, delivery_mode_ids, search, sort, page, limit } = req.query;
+  const { category_ids, city_ids, association_ids, delivery_mode_ids, search, sort, page, limit, include_deleted, status, is_public } = req.query;
 
   const innerCat = category_ids ? "!inner" : "";
   const innerCity = city_ids ? "!inner" : "";
@@ -99,6 +99,18 @@ export const getCourses = async (req: Request, res: Response) => {
   if (delivery_mode_ids) {
     const ids = Array.isArray(delivery_mode_ids) ? delivery_mode_ids : [delivery_mode_ids];
     query = query.in("course_delivery_modes.delivery_mode_id", ids);
+  }
+
+  if (include_deleted !== "true") {
+    query = query.neq("status", "deleted");
+  }
+
+  if (status) {
+    query = query.eq("status", status);
+  }
+
+  if (is_public === "true") {
+    query = query.eq("is_public", true);
   }
 
   if (search) {
@@ -270,12 +282,15 @@ export const bulkUpdateCourses = async (req: Request, res: Response) => {
 };
 
 export const deleteCourse = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
-  const { error } = await supabase.from("courses").delete().eq("id", id);
+  const { error } = await supabase.from("courses").update({
+    status: 'deleted',
+    deleted_at: new Date().toISOString()
+  }).eq("id", id);
 
   if (error) {
-    throw new AppError(error.message, 400, ErrorCategory.VALIDATION);
+    throw new AppError(error.message, 500, ErrorCategory.SYSTEM);
   }
 
   res.status(204).send();
