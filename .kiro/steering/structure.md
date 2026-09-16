@@ -4,90 +4,110 @@ inclusion: always
 
 # Project Structure
 
+`perfxcel-api` is an Express REST API (LMS backend) that talks directly to Supabase and serves the PerfXcel frontend.
+
 ```
-api/
-├── index.ts           # Single entry point — all routes, middleware, and proxy config live here
+src/
+├── app.ts                # Express app: middleware registration and route mounting
+├── server.ts             # Entry point — binds the port, imports app
+├── routes/               # One file per resource; defines Router and per-route middleware
+│   ├── courses.ts
+│   ├── taxonomies.ts
+│   ├── interests.ts
+│   ├── enrollments.ts
+│   ├── enquiries.ts
+│   ├── verify.ts
+│   ├── metrics.ts
+│   ├── auditLogs.ts
+│   └── contact.ts
+├── controllers/          # Request handlers — all business logic lives here
+├── middleware/
+│   ├── auth.ts           # requireAuth — validates Supabase Bearer JWT, sets req.user
+│   └── tenant.ts         # requirePerfxcelTenant — verifies tenant membership, sets req.tenantId
+├── db/
+│   └── supabase.ts       # Supabase client (service role, perfxcel schema)
 ├── utils/
-│   └── logger.ts      # Winston logger singleton — use this, never console.log
-└── types/
-    └── express.d.ts   # Express Request augmentations (req.user, req.tenantId, req.correlationId)
-__mocks__/             # Jest manual mocks
-__tests__/             # Jest tests
-├── gateway.test.ts
-├── infra.test.ts
-├── proxy-urls.test.ts
-├── startup.test.ts
-├── resolveTenant.unit.test.js
-├── resolveTenant.property.test.js   # fast-check property-based tests
-└── utils/             # Test utilities and helpers
-dist/                  # Compiled TypeScript output — do not edit
+│   └── course.ts         # Domain utilities (e.g. computeIsBlended)
+├── types/
+│   └── express.d.ts      # Express Request augmentations: req.user, req.tenantId
+└── __tests__/            # Jest tests
+dist/                     # Compiled output — do not edit
 ```
 
-## Critical Architecture Rules
+## Architecture Rules
 
-- **All route definitions live exclusively in `api/index.ts`.** There is no `routes/` directory. Do not create one.
-- **No business logic in the gateway.** The gateway only authenticates, resolves tenant, and proxies. Domain logic belongs in `perfxcel-workflow-service`.
-- **No database.** The gateway holds no state and makes no DB calls.
+- **`app.ts` mounts routes; controllers own business logic.** Keep `app.ts` to middleware setup and `app.use(...)` calls only. Never write request-handling logic there.
+- **One router file per resource.** Add new resources by creating `src/routes/<resource>.ts` and mounting it in `app.ts`.
+- **Controllers are plain async functions** `(req: Request, res: Response)`. All controllers must be wrapped with `asyncHandler` from `@dotevolve/error-utils` at the route level — never inside the controller itself.
+- **Never call `res.status(4xx/5xx).json(...)` directly.** Throw typed error classes (`AppError`, `NotFoundError`, `AuthenticationError`, `AuthorizationError`) from `@dotevolve/error-utils` instead.
+- **Soft deletes only.** Records are never hard-deleted; set `status: 'deleted'` and `deleted_at` timestamp. Queries must filter `neq("status", "deleted")` by default unless `include_deleted=true` is explicitly requested.
 
-## Route Registration Order (mandatory)
-
-Public routes **must** be registered before the protected middleware chain:
+## Middleware Registration Order (`app.ts`)
 
 ```ts
-// 1. Public routes (no auth)
-app.get('/health', ...)
-app.use('/api/v1/webhooks', proxy(...))
-app.use('/api/v1/tenants/signup', proxy(...))
-// ...other public routes...
-
-// 2. Protected routes — requireAuth → resolveTenant runs for everything below
-app.use('/api/v1', requireAuth, resolveTenant, proxy(...))
+initializeSentry(...)          // must be called first, before Express
+app.use(helmet())
+app.use(cors())
+app.use(morgan("dev"))
+app.use(express.json())
+setupSentryMiddleware(app)     // Sentry request tracking
+// routes...
+setupSentryErrorHandler(app)   // must be before errorHandlerMiddleware
+app.use(errorHandlerMiddleware)
 ```
 
-Any route that must bypass auth must appear **above** the `app.use('/api/v1', requireAuth, resolveTenant)` line.
+`setupSentryErrorHandler` must come after all routes and before `errorHandlerMiddleware`. Never reorder these.
 
-## Middleware
+## Authentication & Tenant Guard
 
-Middleware is defined inline in `api/index.ts` — there is no separate `middleware/` directory.
+Apply middleware at the **route level**, not globally in `app.ts`:
 
-Key middleware in registration order:
-1. `initializeSentry(...)` — **must be called first**, before any Express import
-2. `setupSentryMiddleware(app)` — Sentry request tracking
-3. `correlationIdMiddleware` — attaches `X-Correlation-Id` to every request
-4. `requireAuth` — validates Supabase Bearer JWT, attaches `req.user`
-5. `resolveTenant` — extracts `activeTenantId` from JWT claims, sets `req.tenantId`
-6. `setupSentryErrorHandler(app)` — **must be last**
+```ts
+// Public route — no auth
+router.get("/", asyncHandler(handler));
 
-## Proxy Configuration
+// Protected route — requires auth + tenant membership
+router.post("/", requireAuth, requirePerfxcelTenant, asyncHandler(handler));
+```
 
-All downstream requests go to `perfxcel-workflow-service` via `express-http-proxy`.
+- `requireAuth` validates the Supabase Bearer JWT and attaches `req.user`.
+- `requirePerfxcelTenant` verifies the authenticated user is a member of the `perfxcel` tenant and attaches `req.tenantId`.
+- Both middleware bypass all checks when `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` are unset (dev mode). **Never remove the null-check guard.**
 
-Every authenticated proxy request decorates headers via `workflowProxyOptions`:
-- `x-user-email` — from `req.user.email`
-- `x-tenant-id` — from `req.tenantId`
-- `x-correlation-id` — from `req.correlationId`
+## Database
 
-Special proxy flags:
-- `parseReqBody: false` is **required** for `/api/v1/idp` (multipart) and `/api/v1/events` (SSE) to prevent body corruption.
+- All controllers use the `supabase` client from `src/db/supabase.ts` (service role key, `perfxcel` schema).
+- The `tenant.ts` middleware uses a separate `portalSupabase` client targeting the `public` schema for cross-tenant lookups.
+- Use `!inner` join syntax on Supabase queries when filtering by a related table's column.
+- Always handle Supabase errors explicitly — check `{ data, error }` and throw an appropriate `AppError` on error.
+
+## Response Shape
+
+All successful responses follow this convention:
+
+```ts
+// Collection
+res.status(200).json({ status: "success", results: n, total: count, page, limit, data: [...] });
+
+// Single resource
+res.status(200).json({ status: "success", data: { ... } });
+
+// Created
+res.status(201).json({ status: "success", data: { ... } });
+
+// Deleted (soft)
+res.status(204).send();
+```
 
 ## TypeScript Conventions
 
-- Strict mode is enabled — no `any` without an explicit justification comment.
-- Express `Request` augmentations (`req.user`, `req.tenantId`, `req.correlationId`) are declared in `api/types/express.d.ts`. Add new augmentations there.
-
-## Error Handling
-
-- Use `errorHandlerMiddleware` and `setupSentryErrorHandler` from `@dotevolve/error-utils/express`.
-- Never write `res.status(4xx).json(...)` directly in route handlers — throw typed `AppError` subclasses instead.
-
-## Logging
-
-- Use `api/utils/logger.ts` (Winston) for all logging. Never use `console.log` in production code.
+- Strict mode is enabled. No `any` without an explicit justification comment.
+- Express `Request` augmentations (`req.user`, `req.tenantId`) are declared in `src/types/express.d.ts`. Add new augmentations there.
+- Controllers receive `Request` and `Response` from `express` — do not use `NextFunction` unless writing middleware.
 
 ## Testing
 
-- Tests live in `__tests__/`. Use Jest 30 with `supertest` and `nock`.
-- Property-based tests use `fast-check` and the `.property.test.js` suffix.
-- The app is exported as `default` from `api/index.ts` for `supertest` integration tests.
-- The server does **not** start when `NODE_ENV=test`.
-- Auth bypass is active when `SUPABASE_URL`/`SUPABASE_ANON_KEY` are unset — never remove the null-check guard.
+- Tests live in `src/__tests__/`. Use Jest 29 with `supertest`.
+- The app is exported as `default` from `src/app.ts` for `supertest` integration tests.
+- Auth and tenant checks are bypassed in tests when Supabase env vars are unset — rely on this rather than mocking middleware.
+- Run tests: `npm test` (single pass, `--forceExit`).
