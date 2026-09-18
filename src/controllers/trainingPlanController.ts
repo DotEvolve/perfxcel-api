@@ -106,3 +106,38 @@ export const downloadTrainingPlan = async (req: Request, res: Response) => {
   res.setHeader("Content-Disposition", 'attachment; filename="Perfxcel_Training_Plan.pdf"');
   res.send(buffer);
 };
+
+export const getTrainingPlanRequests = async (req: Request, res: Response) => {
+  const { search, page, limit } = req.query;
+
+  let query = supabase
+    .from("training_plan_requests")
+    .select("*", { count: "exact" });
+
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+
+  query = query.order("created_at", { ascending: false });
+
+  const pageNum = parseInt(page as string) || 1;
+  const limitNum = parseInt(limit as string) || 20;
+  const from = (pageNum - 1) * limitNum;
+  const to = from + limitNum - 1;
+  query = query.range(from, to);
+
+  const { data, count, error } = await query;
+
+  if (error) {
+    throw new AppError(error.message, 500, ErrorCategory.SYSTEM);
+  }
+
+  res.status(200).json({
+    status: "success",
+    results: data.length,
+    total: count,
+    page: pageNum,
+    limit: limitNum,
+    data,
+  });
+};
