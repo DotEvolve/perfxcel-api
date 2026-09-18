@@ -17,6 +17,7 @@ import metricsRoutes from "./routes/metrics";
 import auditLogsRoutes from "./routes/auditLogs";
 import contactRoutes from "./routes/contact";
 import enquiryRoutes from "./routes/enquiries";
+import trainingPlanRoutes from "./routes/trainingPlan";
 
 // Initialize Sentry if DSN is provided
 initializeSentry({
@@ -52,6 +53,7 @@ app.use("/api/v1/metrics", metricsRoutes);
 app.use("/api/v1/audit-logs", auditLogsRoutes);
 app.use("/api/v1/contact", contactRoutes);
 app.use("/api/v1/enquiries", enquiryRoutes);
+app.use("/api/v1/training-plan", trainingPlanRoutes);
 
 // Sentry Error Handler must be before any other error middleware and after all controllers
 setupSentryErrorHandler(app);
