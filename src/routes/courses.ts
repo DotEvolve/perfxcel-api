@@ -2,6 +2,9 @@ import { Router } from "express";
 import { asyncHandler } from "@dotevolve/error-utils";
 import { requireAuth } from "../middleware/auth";
 import { requirePerfxcelTenant } from "../middleware/tenant";
+import { validateBody } from "../middleware/validate";
+import { interestSchema } from "../validators/schemas";
+import { strictLimiter } from "../middleware/rateLimiter";
 import {
   getCourses,
   getCourse,
@@ -26,16 +29,13 @@ const validateCourseInput = (req: any, res: any, next: any) => {
   next();
 };
 
-// Public routes
+// Static-segment routes first — must be above /:id to prevent dynamic capture
 router.get("/", asyncHandler(getCourses));
-
-// Admin routes — require JWT
 router.post("/", requireAuth, requirePerfxcelTenant, validateCourseInput, asyncHandler(createCourse));
 router.patch("/bulk", requireAuth, requirePerfxcelTenant, asyncHandler(bulkUpdateCourses));
 
-// Public — tenant-facing interest registration
-router.post("/:id/interest", asyncHandler(registerInterest));
-
+// Dynamic-segment routes
+router.post("/:id/interest", strictLimiter, validateBody(interestSchema), asyncHandler(registerInterest));
 router.get("/:id", asyncHandler(getCourse));
 router.put("/:id", requireAuth, requirePerfxcelTenant, validateCourseInput, asyncHandler(updateCourse));
 router.delete("/:id", requireAuth, requirePerfxcelTenant, asyncHandler(deleteCourse));
