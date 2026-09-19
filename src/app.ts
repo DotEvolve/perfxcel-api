@@ -33,7 +33,7 @@ const app = express();
 // Security and Logging Middlewares
 app.use(helmet());
 
-const allowedOrigins = process.env.CORS_ORIGINS?.split(",").map((o) => o.trim()) || [
+const allowedOrigins = process.env.PERFXCEL_CORS_ORIGINS?.split(",").map((o) => o.trim()) || [
   "https://perfxcel.com",
   "https://www.perfxcel.com",
   "https://admin.perfxcel.com"
