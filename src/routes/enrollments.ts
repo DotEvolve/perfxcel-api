@@ -6,6 +6,7 @@ import {
   getEnrollments,
   createEnrollment,
   updateEnrollmentStatus,
+  resendCertificate,
 } from "../controllers/enrollmentController";
 
 const router = Router();
@@ -27,6 +28,13 @@ router.patch(
   requireAuth,
   requirePerfxcelTenant,
   asyncHandler(updateEnrollmentStatus),
+);
+
+router.post(
+  "/:id/resend-certificate",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(resendCertificate),
 );
 
 export default router;

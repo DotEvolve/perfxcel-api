@@ -361,3 +361,58 @@ async function sendCertificateEmail(
     // Don't fail the whole request just because email failed
   }
 }
+
+export const resendCertificate = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const { data: enrollment, error } = await supabase
+    .from("enrollments")
+    .select("*, course_interests(name, email, courses(title))")
+    .eq("id", id)
+    .single();
+
+  if (error || !enrollment) {
+    throw new NotFoundError("Enrollment not found");
+  }
+
+  if (enrollment.status !== "achieved") {
+    throw new AppError("Certificate can only be resent for achieved enrollments", 400, ErrorCategory.VALIDATION);
+  }
+
+  const { data: certData } = await supabase
+    .from("certificates")
+    .select("credential_id, pdf_url")
+    .eq("enrollment_id", id)
+    .single();
+
+  if (!certData) {
+    throw new NotFoundError("Certificate not found");
+  }
+
+  // Fetch the PDF buffer from Supabase Storage
+  const storageClient = createClient(
+    process.env.SUPABASE_URL || "",
+    process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+  );
+  
+  const { data: pdfBlob, error: downloadError } = await storageClient.storage
+    .from("certificates")
+    .download(`${certData.credential_id}.pdf`);
+
+  if (downloadError || !pdfBlob) {
+     throw new AppError("Failed to download certificate for sending", 500, ErrorCategory.SYSTEM);
+  }
+  
+  const arrayBuffer = await pdfBlob.arrayBuffer();
+  const pdfBuffer = Buffer.from(arrayBuffer);
+
+  await sendCertificateEmail(
+    enrollment.course_interests.email,
+    enrollment.course_interests.name,
+    certData.pdf_url,
+    pdfBuffer,
+    certData.credential_id,
+  );
+
+  res.status(200).json({ status: "success", message: "Certificate resent successfully" });
+};
