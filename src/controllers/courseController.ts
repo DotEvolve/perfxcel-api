@@ -247,41 +247,33 @@ export const createCourse = async (req: Request, res: Response) => {
   await Promise.all(
     [
       category_ids?.length > 0 &&
-        supabase
-          .from("course_categories")
-          .insert(
-            category_ids.map((id: string) => ({
-              course_id: course.id,
-              category_id: id,
-            })),
-          ),
+        supabase.from("course_categories").insert(
+          category_ids.map((id: string) => ({
+            course_id: course.id,
+            category_id: id,
+          })),
+        ),
       city_ids?.length > 0 &&
-        supabase
-          .from("course_cities")
-          .insert(
-            city_ids.map((id: string) => ({
-              course_id: course.id,
-              city_id: id,
-            })),
-          ),
+        supabase.from("course_cities").insert(
+          city_ids.map((id: string) => ({
+            course_id: course.id,
+            city_id: id,
+          })),
+        ),
       association_ids?.length > 0 &&
-        supabase
-          .from("course_associations")
-          .insert(
-            association_ids.map((id: string) => ({
-              course_id: course.id,
-              association_id: id,
-            })),
-          ),
+        supabase.from("course_associations").insert(
+          association_ids.map((id: string) => ({
+            course_id: course.id,
+            association_id: id,
+          })),
+        ),
       delivery_mode_ids?.length > 0 &&
-        supabase
-          .from("course_delivery_modes")
-          .insert(
-            delivery_mode_ids.map((id: string) => ({
-              course_id: course.id,
-              delivery_mode_id: id,
-            })),
-          ),
+        supabase.from("course_delivery_modes").insert(
+          delivery_mode_ids.map((id: string) => ({
+            course_id: course.id,
+            delivery_mode_id: id,
+          })),
+        ),
       schedules?.length > 0 &&
         supabase
           .from("course_schedules")
@@ -337,14 +329,12 @@ export const updateCourse = async (req: Request, res: Response) => {
   await Promise.all(
     [
       category_ids?.length > 0 &&
-        supabase
-          .from("course_categories")
-          .insert(
-            category_ids.map((cid: string) => ({
-              course_id: id,
-              category_id: cid,
-            })),
-          ),
+        supabase.from("course_categories").insert(
+          category_ids.map((cid: string) => ({
+            course_id: id,
+            category_id: cid,
+          })),
+        ),
       city_ids?.length > 0 &&
         supabase
           .from("course_cities")
@@ -352,23 +342,19 @@ export const updateCourse = async (req: Request, res: Response) => {
             city_ids.map((cid: string) => ({ course_id: id, city_id: cid })),
           ),
       association_ids?.length > 0 &&
-        supabase
-          .from("course_associations")
-          .insert(
-            association_ids.map((cid: string) => ({
-              course_id: id,
-              association_id: cid,
-            })),
-          ),
+        supabase.from("course_associations").insert(
+          association_ids.map((cid: string) => ({
+            course_id: id,
+            association_id: cid,
+          })),
+        ),
       delivery_mode_ids?.length > 0 &&
-        supabase
-          .from("course_delivery_modes")
-          .insert(
-            delivery_mode_ids.map((cid: string) => ({
-              course_id: id,
-              delivery_mode_id: cid,
-            })),
-          ),
+        supabase.from("course_delivery_modes").insert(
+          delivery_mode_ids.map((cid: string) => ({
+            course_id: id,
+            delivery_mode_id: cid,
+          })),
+        ),
       schedules?.length > 0 &&
         supabase.from("course_schedules").insert(
           schedules.map((s: any) => ({
