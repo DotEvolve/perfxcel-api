@@ -1,24 +1,82 @@
-import { Router } from 'express';
-import { asyncHandler } from '@dotevolve/error-utils';
+import { Router } from "express";
+import { asyncHandler } from "@dotevolve/error-utils";
+import { requireAuth } from "../middleware/auth";
+import { requirePerfxcelTenant } from "../middleware/tenant";
+import { validateBody } from "../middleware/validate";
+import { interestSchema } from "../validators/schemas";
+import { strictLimiter } from "../middleware/rateLimiter";
 import {
   getCourses,
   getCourse,
   createCourse,
   updateCourse,
   deleteCourse,
-} from '../controllers/courseController';
+  registerInterest,
+  bulkUpdateCourses,
+} from "../controllers/courseController";
+import { AppError, ErrorCategory } from "@dotevolve/error-utils";
 
 const router = Router();
 
-// Public routes
-router.get('/', asyncHandler(getCourses));
-router.get('/:id', asyncHandler(getCourse));
+const validateCourseInput = (req: any, res: any, next: any) => {
+  const { status, is_public } = req.body;
+  if (status && !["active", "archived"].includes(status)) {
+    return next(
+      new AppError(
+        "Invalid status. Must be active or archived.",
+        400,
+        ErrorCategory.VALIDATION,
+      ),
+    );
+  }
+  if (is_public !== undefined && typeof is_public !== "boolean") {
+    return next(
+      new AppError(
+        "is_public must be a boolean",
+        400,
+        ErrorCategory.VALIDATION,
+      ),
+    );
+  }
+  next();
+};
 
-// Admin routes (In future we can add a requireAdmin middleware here)
-// For MVP, we will rely on the service role key bypassing RLS, or we can use Supabase auth middleware.
-// For now they are open to simplify MVP, or we can just assume they will only be called from authenticated admin frontend.
-router.post('/', asyncHandler(createCourse));
-router.put('/:id', asyncHandler(updateCourse));
-router.delete('/:id', asyncHandler(deleteCourse));
+// Static-segment routes first — must be above /:id to prevent dynamic capture
+router.get("/", asyncHandler(getCourses));
+router.post(
+  "/",
+  requireAuth,
+  requirePerfxcelTenant,
+  validateCourseInput,
+  asyncHandler(createCourse),
+);
+router.patch(
+  "/bulk",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(bulkUpdateCourses),
+);
+
+// Dynamic-segment routes
+router.post(
+  "/:id/interest",
+  strictLimiter,
+  validateBody(interestSchema),
+  asyncHandler(registerInterest),
+);
+router.get("/:id", asyncHandler(getCourse));
+router.put(
+  "/:id",
+  requireAuth,
+  requirePerfxcelTenant,
+  validateCourseInput,
+  asyncHandler(updateCourse),
+);
+router.delete(
+  "/:id",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(deleteCourse),
+);
 
 export default router;
