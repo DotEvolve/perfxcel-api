@@ -24,8 +24,14 @@ export const verifyCertificate = async (req: Request, res: Response) => {
     throw new AppError("Turnstile verification failed", 403, ErrorCategory.AUTHENTICATION);
   }
 
-  const hostnames = (process.env.VITE_PERFXCEL_TURNSTILE_HOSTNAMES || '').split(',').map(h => h.trim());
-  if (hostnames.length > 0 && !hostnames.includes(turnstileData.hostname)) {
+  const expectedHostnames = new Set(
+    (process.env.VITE_PERFXCEL_TURNSTILE_HOSTNAMES ?? "dev.perfxcel.com,perfxcel.com")
+      .split(",")
+      .map((hostname) => hostname.trim())
+      .filter(Boolean)
+  );
+
+  if (expectedHostnames.size > 0 && !expectedHostnames.has(turnstileData.hostname)) {
       throw new AppError("Turnstile hostname mismatch", 403, ErrorCategory.AUTHENTICATION);
   }
 

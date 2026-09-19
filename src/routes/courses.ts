@@ -26,17 +26,18 @@ const validateCourseInput = (req: any, res: any, next: any) => {
   next();
 };
 
-// Public — tenant-facing interest registration
-router.post("/:id/interest", asyncHandler(registerInterest));
-
 // Public routes
 router.get("/", asyncHandler(getCourses));
-router.get("/:id", asyncHandler(getCourse));
 
 // Admin routes — require JWT
 router.post("/", requireAuth, requirePerfxcelTenant, validateCourseInput, asyncHandler(createCourse));
-router.put("/:id", requireAuth, requirePerfxcelTenant, validateCourseInput, asyncHandler(updateCourse));
 router.patch("/bulk", requireAuth, requirePerfxcelTenant, asyncHandler(bulkUpdateCourses));
+
+// Public — tenant-facing interest registration
+router.post("/:id/interest", asyncHandler(registerInterest));
+
+router.get("/:id", asyncHandler(getCourse));
+router.put("/:id", requireAuth, requirePerfxcelTenant, validateCourseInput, asyncHandler(updateCourse));
 router.delete("/:id", requireAuth, requirePerfxcelTenant, asyncHandler(deleteCourse));
 
 export default router;

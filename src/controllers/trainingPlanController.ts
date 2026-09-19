@@ -4,10 +4,34 @@ import { AppError, ErrorCategory } from "@dotevolve/error-utils";
 import nodemailer from "nodemailer";
 
 export const requestTrainingPlan = async (req: Request, res: Response) => {
-  const { name, email, mobile, designation, company } = req.body;
+  const { name, email, mobile, designation, company, turnstileToken } = req.body;
 
-  if (!name || !email || !mobile) {
-    throw new AppError("Name, email, and mobile are required", 400, ErrorCategory.VALIDATION);
+  const expectedHostnames = new Set(
+    (process.env.VITE_PERFXCEL_TURNSTILE_HOSTNAMES ?? "dev.perfxcel.com,perfxcel.com")
+      .split(",")
+      .map((hostname) => hostname.trim())
+      .filter(Boolean)
+  );
+
+  let result;
+  try {
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        secret: process.env.VITE_PERFXCEL_TURNSTILE_SECRET_KEY || "",
+        response: turnstileToken,
+        remoteip: req.ip || "",
+      }),
+    });
+    if (!r.ok) throw new Error(`siteverify ${r.status}`);
+    result = await r.json();
+  } catch (err) {
+    throw new AppError("Failed to verify Turnstile token", 500, ErrorCategory.SYSTEM);
+  }
+
+  if (!result.success || (expectedHostnames.size > 0 && !expectedHostnames.has(result.hostname))) {
+    throw new AppError("Invalid Turnstile token", 403, ErrorCategory.AUTHENTICATION);
   }
 
   // Insert into DB using admin client or service role to bypass RLS for public insert
