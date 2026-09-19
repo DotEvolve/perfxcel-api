@@ -4,34 +4,52 @@ import { AppError, ErrorCategory } from "@dotevolve/error-utils";
 import nodemailer from "nodemailer";
 
 export const requestTrainingPlan = async (req: Request, res: Response) => {
-  const { name, email, mobile, designation, company, turnstileToken } = req.body;
+  const { name, email, mobile, designation, company, turnstileToken } =
+    req.body;
 
   const expectedHostnames = new Set(
-    (process.env.VITE_PERFXCEL_TURNSTILE_HOSTNAMES ?? "dev.perfxcel.com,perfxcel.com")
+    (
+      process.env.VITE_PERFXCEL_TURNSTILE_HOSTNAMES ??
+      "dev.perfxcel.com,perfxcel.com"
+    )
       .split(",")
       .map((hostname) => hostname.trim())
-      .filter(Boolean)
+      .filter(Boolean),
   );
 
   let result;
   try {
-    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        secret: process.env.VITE_PERFXCEL_TURNSTILE_SECRET_KEY || "",
-        response: turnstileToken,
-        remoteip: req.ip || "",
-      }),
-    });
+    const r = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          secret: process.env.VITE_PERFXCEL_TURNSTILE_SECRET_KEY || "",
+          response: turnstileToken,
+          remoteip: req.ip || "",
+        }),
+      },
+    );
     if (!r.ok) throw new Error(`siteverify ${r.status}`);
     result = await r.json();
   } catch (err) {
-    throw new AppError("Failed to verify Turnstile token", 500, ErrorCategory.SYSTEM);
+    throw new AppError(
+      "Failed to verify Turnstile token",
+      500,
+      ErrorCategory.SYSTEM,
+    );
   }
 
-  if (!result.success || (expectedHostnames.size > 0 && !expectedHostnames.has(result.hostname))) {
-    throw new AppError("Invalid Turnstile token", 403, ErrorCategory.AUTHENTICATION);
+  if (
+    !result.success ||
+    (expectedHostnames.size > 0 && !expectedHostnames.has(result.hostname))
+  ) {
+    throw new AppError(
+      "Invalid Turnstile token",
+      403,
+      ErrorCategory.AUTHENTICATION,
+    );
   }
 
   // Insert into DB using admin client or service role to bypass RLS for public insert
@@ -62,7 +80,9 @@ export const requestTrainingPlan = async (req: Request, res: Response) => {
     });
 
     await transporter.sendMail({
-      from: process.env.PERFXCEL_CERT_SMTP_FROM || "Perfxcel <no-reply@perfxcel.com>",
+      from:
+        process.env.PERFXCEL_CERT_SMTP_FROM ||
+        "Perfxcel <no-reply@perfxcel.com>",
       to: email,
       subject: "Your PerfXcel Enterprise Training Plan",
       html: `
@@ -104,12 +124,20 @@ export const downloadTrainingPlan = async (req: Request, res: Response) => {
     .single();
 
   if (findError || !request) {
-    throw new AppError("Invalid or expired download link", 403, ErrorCategory.AUTHENTICATION);
+    throw new AppError(
+      "Invalid or expired download link",
+      403,
+      ErrorCategory.AUTHENTICATION,
+    );
   }
 
   // Check expiration
   if (new Date(request.expires_at) < new Date()) {
-    throw new AppError("This download link has expired. Please request a new one.", 403, ErrorCategory.AUTHENTICATION);
+    throw new AppError(
+      "This download link has expired. Please request a new one.",
+      403,
+      ErrorCategory.AUTHENTICATION,
+    );
   }
 
   // Generate a short-lived signed URL or download the file directly and stream it.
@@ -119,7 +147,11 @@ export const downloadTrainingPlan = async (req: Request, res: Response) => {
 
   if (downloadError || !fileData) {
     console.error("Failed to download PDF from storage", downloadError);
-    throw new AppError("The training plan document is currently unavailable.", 500, ErrorCategory.SYSTEM);
+    throw new AppError(
+      "The training plan document is currently unavailable.",
+      500,
+      ErrorCategory.SYSTEM,
+    );
   }
 
   // Convert Blob to Buffer and stream to response
@@ -127,7 +159,10 @@ export const downloadTrainingPlan = async (req: Request, res: Response) => {
   const buffer = Buffer.from(arrayBuffer);
 
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", 'attachment; filename="Perfxcel_Training_Plan.pdf"');
+  res.setHeader(
+    "Content-Disposition",
+    'attachment; filename="Perfxcel_Training_Plan.pdf"',
+  );
   res.send(buffer);
 };
 

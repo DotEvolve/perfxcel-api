@@ -36,22 +36,22 @@ This spec introduces a `requireAuth` middleware and applies it to all admin rout
 
 **REQ-2.1** The following routes MUST be protected by `requireAuth` middleware — it MUST be applied at the route-file level (not globally in `app.ts`):
 
-| Route file | Routes protected |
-|---|---|
-| `src/routes/courses.ts` | All routes (`GET /`, `GET /:id`, `POST /`, `PUT /:id`, `PATCH /bulk`, `DELETE /:id`) except `POST /:id/interest` (public — tenant-facing) |
-| `src/routes/taxonomies.ts` | All routes |
-| `src/routes/interests.ts` | All routes |
-| `src/routes/enrollments.ts` | All routes |
-| `src/routes/metrics.ts` | The single `GET /` route |
+| Route file                  | Routes protected                                                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/routes/courses.ts`     | All routes (`GET /`, `GET /:id`, `POST /`, `PUT /:id`, `PATCH /bulk`, `DELETE /:id`) except `POST /:id/interest` (public — tenant-facing) |
+| `src/routes/taxonomies.ts`  | All routes                                                                                                                                |
+| `src/routes/interests.ts`   | All routes                                                                                                                                |
+| `src/routes/enrollments.ts` | All routes                                                                                                                                |
+| `src/routes/metrics.ts`     | The single `GET /` route                                                                                                                  |
 
 **REQ-2.2** The public course interest registration route `POST /courses/:id/interest` MUST remain unprotected — it is called by tenant-facing apps, not the admin dashboard.
 
 **REQ-2.3** The following routes MUST remain completely unauthenticated:
 
-| Route | Reason |
-|---|---|
-| `GET /health` | Infrastructure health check |
-| `GET /api/v1/verify` | Certificate verification — public facing |
+| Route                        | Reason                                   |
+| ---------------------------- | ---------------------------------------- |
+| `GET /health`                | Infrastructure health check              |
+| `GET /api/v1/verify`         | Certificate verification — public facing |
 | `GET /api/v1/verify/:id/pdf` | Certificate PDF download — public facing |
 
 ---
@@ -71,6 +71,7 @@ This spec introduces a `requireAuth` middleware and applies it to all admin rout
 **REQ-4.1** A unit test file MUST be created at `src/__tests__/middleware/auth.test.ts`.
 
 **REQ-4.2** The tests MUST cover:
+
 - Missing `Authorization` header → throws `AuthenticationError`
 - Malformed header (no `Bearer ` prefix) → throws `AuthenticationError`
 - Valid header format but Supabase returns an error → throws `AuthenticationError`

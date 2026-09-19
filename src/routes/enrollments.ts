@@ -10,8 +10,23 @@ import {
 
 const router = Router();
 
-router.get("/", requireAuth, requirePerfxcelTenant, asyncHandler(getEnrollments));
-router.post("/", requireAuth, requirePerfxcelTenant, asyncHandler(createEnrollment));
-router.patch("/:id", requireAuth, requirePerfxcelTenant, asyncHandler(updateEnrollmentStatus));
+router.get(
+  "/",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(getEnrollments),
+);
+router.post(
+  "/",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(createEnrollment),
+);
+router.patch(
+  "/:id",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(updateEnrollmentStatus),
+);
 
 export default router;

@@ -12,12 +12,20 @@ export const validateBody = (schema: ZodTypeAny) => {
       if (error instanceof ZodError) {
         // Zod 4.x compatibility: issues array
         const errorMessages = error.issues.map((issue: any) => ({
-          message: `${issue.path.join('.')} is ${issue.message}`,
+          message: `${issue.path.join(".")} is ${issue.message}`,
         }));
         // Provide a joined string of validation errors
-        next(new AppError(`Validation failed: ${errorMessages.map((e: any) => e.message).join(', ')}`, 400, ErrorCategory.VALIDATION));
+        next(
+          new AppError(
+            `Validation failed: ${errorMessages.map((e: any) => e.message).join(", ")}`,
+            400,
+            ErrorCategory.VALIDATION,
+          ),
+        );
       } else {
-        next(new AppError("Invalid request data", 400, ErrorCategory.VALIDATION));
+        next(
+          new AppError("Invalid request data", 400, ErrorCategory.VALIDATION),
+        );
       }
     }
   };

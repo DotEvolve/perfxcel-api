@@ -1,7 +1,12 @@
 import { Request, Response } from "express";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "../db/supabase";
-import { AppError, ErrorCategory, ConflictError, NotFoundError } from "@dotevolve/error-utils";
+import {
+  AppError,
+  ErrorCategory,
+  ConflictError,
+  NotFoundError,
+} from "@dotevolve/error-utils";
 import QRCode from "qrcode";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import fs from "fs";
@@ -13,7 +18,9 @@ export const getEnrollments = async (req: Request, res: Response) => {
 
   let query = supabase
     .from("enrollments")
-    .select("*, course_interests!inner(name, email, courses(title))", { count: "exact" });
+    .select("*, course_interests!inner(name, email, courses(title))", {
+      count: "exact",
+    });
 
   if (status) {
     const statuses = Array.isArray(status) ? status : [status];
@@ -21,7 +28,9 @@ export const getEnrollments = async (req: Request, res: Response) => {
   }
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`, { foreignTable: "course_interests" });
+    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`, {
+      foreignTable: "course_interests",
+    });
   }
 
   if (sort) {
@@ -57,7 +66,11 @@ export const createEnrollment = async (req: Request, res: Response) => {
   const { interest_id } = req.body;
 
   if (!interest_id) {
-    throw new AppError("interest_id is required", 400, ErrorCategory.VALIDATION);
+    throw new AppError(
+      "interest_id is required",
+      400,
+      ErrorCategory.VALIDATION,
+    );
   }
 
   // Verify interest exists
@@ -135,7 +148,10 @@ export const updateEnrollmentStatus = async (req: Request, res: Response) => {
       .maybeSingle();
 
     if (!certData) {
-      await generateAndIssueCertificate(enrollment, enrollment.course_interests);
+      await generateAndIssueCertificate(
+        enrollment,
+        enrollment.course_interests,
+      );
     }
   }
 
@@ -157,12 +173,16 @@ async function generateUniqueCredentialId(): Promise<string> {
       .select("id")
       .eq("credential_id", credentialId)
       .maybeSingle();
-      
+
     if (!data) {
       return credentialId;
     }
   }
-  throw new AppError("Failed to generate unique credential ID", 500, ErrorCategory.SYSTEM);
+  throw new AppError(
+    "Failed to generate unique credential ID",
+    500,
+    ErrorCategory.SYSTEM,
+  );
 }
 
 async function generateAndIssueCertificate(enrollment: any, interest: any) {
@@ -174,15 +194,22 @@ async function generateAndIssueCertificate(enrollment: any, interest: any) {
   const qrBuffer = await QRCode.toBuffer(verifyUrl, { width: 150, margin: 1 });
 
   // 3. Load certificate template + overlay dynamic content with pdf-lib
-  const templatePath = path.join(__dirname, "../../assets/certificate_template.png");
+  const templatePath = path.join(
+    __dirname,
+    "../../assets/certificate_template.png",
+  );
   if (!fs.existsSync(templatePath)) {
-    throw new AppError("Certificate template not found", 500, ErrorCategory.SYSTEM);
+    throw new AppError(
+      "Certificate template not found",
+      500,
+      ErrorCategory.SYSTEM,
+    );
   }
   const templateBytes = fs.readFileSync(templatePath);
-  
+
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([1200, 850]); 
-  
+  const page = pdfDoc.addPage([1200, 850]);
+
   const pngImage = await pdfDoc.embedPng(templateBytes);
   page.drawImage(pngImage, { x: 0, y: 0, width: 1200, height: 850 });
 
@@ -193,26 +220,63 @@ async function generateAndIssueCertificate(enrollment: any, interest: any) {
   // Overlay text
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  
+
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
   };
 
-  page.drawText(interest.name, { x: 600 - (interest.name.length * 12), y: 450, size: 48, font: boldFont, color: rgb(0.1, 0.1, 0.1) });
-  page.drawText(interest.courses.title, { x: 600 - (interest.courses.title.length * 5), y: 380, size: 24, font, color: rgb(0.3, 0.3, 0.3) });
-  page.drawText(formatDate(new Date()), { x: 600 - 45, y: 330, size: 18, font });
-  page.drawText(`Credential ID: ${credentialId}`, { x: 600 - 75, y: 280, size: 16, font, color: rgb(0.4, 0.4, 0.4) });
+  page.drawText(interest.name, {
+    x: 600 - interest.name.length * 12,
+    y: 450,
+    size: 48,
+    font: boldFont,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+  page.drawText(interest.courses.title, {
+    x: 600 - interest.courses.title.length * 5,
+    y: 380,
+    size: 24,
+    font,
+    color: rgb(0.3, 0.3, 0.3),
+  });
+  page.drawText(formatDate(new Date()), {
+    x: 600 - 45,
+    y: 330,
+    size: 18,
+    font,
+  });
+  page.drawText(`Credential ID: ${credentialId}`, {
+    x: 600 - 75,
+    y: 280,
+    size: 16,
+    font,
+    color: rgb(0.4, 0.4, 0.4),
+  });
 
   const pdfBytes = await pdfDoc.save();
 
   // 4. Upload to Supabase Storage
-  const storageClient = createClient(process.env.SUPABASE_URL || "", process.env.SUPABASE_SERVICE_ROLE_KEY || "");
+  const storageClient = createClient(
+    process.env.SUPABASE_URL || "",
+    process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+  );
   const { data: uploadData, error: uploadError } = await storageClient.storage
     .from("certificates")
-    .upload(`${credentialId}.pdf`, Buffer.from(pdfBytes), { contentType: "application/pdf", upsert: false });
-    
+    .upload(`${credentialId}.pdf`, Buffer.from(pdfBytes), {
+      contentType: "application/pdf",
+      upsert: false,
+    });
+
   if (uploadError) {
-    throw new AppError(`Storage error: ${uploadError.message}`, 500, ErrorCategory.SYSTEM);
+    throw new AppError(
+      `Storage error: ${uploadError.message}`,
+      500,
+      ErrorCategory.SYSTEM,
+    );
   }
 
   // Instead of using Supabase's public URL, generate a URL that points to our own proxy route
@@ -224,16 +288,32 @@ async function generateAndIssueCertificate(enrollment: any, interest: any) {
     enrollment_id: enrollment.id,
     pdf_url: publicUrl,
   });
-  
+
   if (certError) {
-    throw new AppError(`Cert insert error: ${certError.message}`, 500, ErrorCategory.SYSTEM);
+    throw new AppError(
+      `Cert insert error: ${certError.message}`,
+      500,
+      ErrorCategory.SYSTEM,
+    );
   }
 
   // 6. Send email
-  await sendCertificateEmail(interest.email, interest.name, publicUrl, Buffer.from(pdfBytes), credentialId);
+  await sendCertificateEmail(
+    interest.email,
+    interest.name,
+    publicUrl,
+    Buffer.from(pdfBytes),
+    credentialId,
+  );
 }
 
-async function sendCertificateEmail(to: string, name: string, pdfUrl: string, pdfBuffer: Buffer, credentialId: string) {
+async function sendCertificateEmail(
+  to: string,
+  name: string,
+  pdfUrl: string,
+  pdfBuffer: Buffer,
+  credentialId: string,
+) {
   const transporter = nodemailer.createTransport({
     host: process.env.PERFXCEL_CERT_SMTP_HOST || "localhost",
     port: parseInt(process.env.PERFXCEL_CERT_SMTP_PORT || "587", 10),
@@ -245,7 +325,8 @@ async function sendCertificateEmail(to: string, name: string, pdfUrl: string, pd
   });
 
   const mailOptions = {
-    from: process.env.PERFXCEL_CERT_SMTP_FROM || "Perfxcel <no-reply@perfxcel.com>",
+    from:
+      process.env.PERFXCEL_CERT_SMTP_FROM || "Perfxcel <no-reply@perfxcel.com>",
     to,
     subject: "Your PerfXcel Certificate is Ready",
     html: `
@@ -261,9 +342,9 @@ async function sendCertificateEmail(to: string, name: string, pdfUrl: string, pd
       {
         filename: `${credentialId}.pdf`,
         content: pdfBuffer,
-        contentType: 'application/pdf'
-      }
-    ]
+        contentType: "application/pdf",
+      },
+    ],
   };
 
   try {
@@ -271,7 +352,9 @@ async function sendCertificateEmail(to: string, name: string, pdfUrl: string, pd
     if (process.env.PERFXCEL_CERT_SMTP_HOST) {
       await transporter.sendMail(mailOptions);
     } else {
-      console.log(`[Email Mock] Sent certificate to ${to} for credential ${credentialId}`);
+      console.log(
+        `[Email Mock] Sent certificate to ${to} for credential ${credentialId}`,
+      );
     }
   } catch (error) {
     console.error("Failed to send email:", error);

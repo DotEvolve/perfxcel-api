@@ -20,7 +20,9 @@ export const getInterests = async (req: Request, res: Response) => {
   }
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%,company.ilike.%${search}%`);
+    query = query.or(
+      `name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%,company.ilike.%${search}%`,
+    );
   }
 
   if (sort) {

@@ -8,7 +8,8 @@ export const globalLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     status: "error",
-    message: "Too many requests from this IP, please try again after 15 minutes",
+    message:
+      "Too many requests from this IP, please try again after 15 minutes",
   },
 });
 

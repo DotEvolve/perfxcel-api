@@ -7,6 +7,11 @@ import { submitContact } from "../controllers/enquiryController";
 
 const router = Router();
 
-router.post("/", strictLimiter, validateBody(contactSchema), asyncHandler(submitContact));
+router.post(
+  "/",
+  strictLimiter,
+  validateBody(contactSchema),
+  asyncHandler(submitContact),
+);
 
 export default router;

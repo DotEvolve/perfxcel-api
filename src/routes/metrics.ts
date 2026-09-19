@@ -6,6 +6,11 @@ import { getDashboardMetrics } from "../controllers/metricsController";
 
 const router = Router();
 
-router.get("/", requireAuth, requirePerfxcelTenant, asyncHandler(getDashboardMetrics));
+router.get(
+  "/",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(getDashboardMetrics),
+);
 
 export default router;

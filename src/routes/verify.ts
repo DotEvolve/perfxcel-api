@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { verifyCertificate, downloadCertificate } from "../controllers/verifyController";
+import {
+  verifyCertificate,
+  downloadCertificate,
+} from "../controllers/verifyController";
 import { asyncHandler } from "@dotevolve/error-utils";
 import { strictLimiter } from "../middleware/rateLimiter";
 

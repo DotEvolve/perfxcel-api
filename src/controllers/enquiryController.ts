@@ -71,11 +71,18 @@ export const submitContact = async (req: Request, res: Response) => {
   const { name, email, company, message, course_id, turnstileToken } = req.body;
 
   if (!turnstileToken) {
-    throw new AppError("Turnstile token is missing", 400, ErrorCategory.VALIDATION);
+    throw new AppError(
+      "Turnstile token is missing",
+      400,
+      ErrorCategory.VALIDATION,
+    );
   }
 
   const expectedHostnames = new Set(
-    (process.env.VITE_PERFXCEL_TURNSTILE_HOSTNAMES ?? "dev.perfxcel.com,perfxcel.com")
+    (
+      process.env.VITE_PERFXCEL_TURNSTILE_HOSTNAMES ??
+      "dev.perfxcel.com,perfxcel.com"
+    )
       .split(",")
       .map((hostname) => hostname.trim())
       .filter(Boolean),
@@ -83,26 +90,34 @@ export const submitContact = async (req: Request, res: Response) => {
 
   let result;
   try {
-    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        secret: process.env.VITE_PERFXCEL_TURNSTILE_SECRET_KEY || "",
-        response: turnstileToken,
-        remoteip: req.ip || "",
-      }),
-    });
+    const r = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          secret: process.env.VITE_PERFXCEL_TURNSTILE_SECRET_KEY || "",
+          response: turnstileToken,
+          remoteip: req.ip || "",
+        }),
+      },
+    );
     if (!r.ok) throw new Error(`siteverify ${r.status}`);
     result = await r.json();
   } catch (err) {
-    throw new AppError("Failed to verify Turnstile token", 500, ErrorCategory.SYSTEM);
+    throw new AppError(
+      "Failed to verify Turnstile token",
+      500,
+      ErrorCategory.SYSTEM,
+    );
   }
 
-  if (
-    !result.success ||
-    !expectedHostnames.has(result.hostname)
-  ) {
-    throw new AppError("Invalid Turnstile token", 403, ErrorCategory.AUTHENTICATION);
+  if (!result.success || !expectedHostnames.has(result.hostname)) {
+    throw new AppError(
+      "Invalid Turnstile token",
+      403,
+      ErrorCategory.AUTHENTICATION,
+    );
   }
 
   const { data, error } = await supabase
@@ -128,10 +143,15 @@ export const submitContact = async (req: Request, res: Response) => {
     });
 
     await transporter.sendMail({
-      from: process.env.PERFXCEL_CERT_SMTP_FROM || "Perfxcel <no-reply@perfxcel.com>",
-      to: process.env.PERFXCEL_ADMIN_EMAIL || process.env.PERFXCEL_CERT_SMTP_USER || "admin@perfxcel.com",
+      from:
+        process.env.PERFXCEL_CERT_SMTP_FROM ||
+        "Perfxcel <no-reply@perfxcel.com>",
+      to:
+        process.env.PERFXCEL_ADMIN_EMAIL ||
+        process.env.PERFXCEL_CERT_SMTP_USER ||
+        "admin@perfxcel.com",
       subject: "New Enquiry Received - Perfxcel",
-      text: `You have received a new enquiry:\n\nName: ${name}\nEmail: ${email}\nCompany: ${company || 'N/A'}\nMessage: ${message}`,
+      text: `You have received a new enquiry:\n\nName: ${name}\nEmail: ${email}\nCompany: ${company || "N/A"}\nMessage: ${message}`,
     });
   } catch (emailErr) {
     console.error("Failed to send admin notification email", emailErr);

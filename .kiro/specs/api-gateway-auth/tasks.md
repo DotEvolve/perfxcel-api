@@ -87,9 +87,10 @@ Create `perfxcel-api/src/__tests__/middleware/auth.test.ts`.
   5. **Dev bypass** — `supabaseConfigured` is computed at module load time, so use `jest.resetModules()` + `jest.isolateModules()` with `delete process.env.SUPABASE_URL` before re-importing the middleware → verify `next()` is called without calling `supabase.auth.getUser`; restore env vars in `afterEach`
 
 **Helper for constructing mock Express objects:**
+
 ```typescript
 const mockReq = (headers: Record<string, string> = {}) =>
-  ({ headers } as unknown as Request);
+  ({ headers }) as unknown as Request;
 const mockRes = {} as Response;
 const mockNext = jest.fn();
 ```

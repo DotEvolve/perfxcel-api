@@ -6,38 +6,64 @@ export const verifyCertificate = async (req: Request, res: Response) => {
   const { credential_id, turnstileToken } = req.body;
 
   if (!turnstileToken) {
-    throw new AppError("Missing turnstile token", 400, ErrorCategory.VALIDATION);
+    throw new AppError(
+      "Missing turnstile token",
+      400,
+      ErrorCategory.VALIDATION,
+    );
   }
 
   // Validate turnstile token
   const formData = new URLSearchParams();
-  formData.append('secret', process.env.VITE_PERFXCEL_TURNSTILE_SECRET_KEY || '');
-  formData.append('response', turnstileToken);
+  formData.append(
+    "secret",
+    process.env.VITE_PERFXCEL_TURNSTILE_SECRET_KEY || "",
+  );
+  formData.append("response", turnstileToken);
 
-  const turnstileRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST',
-    body: formData,
-  });
+  const turnstileRes = await fetch(
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
 
   const turnstileData = await turnstileRes.json();
   if (!turnstileData.success) {
-    throw new AppError("Turnstile verification failed", 403, ErrorCategory.AUTHENTICATION);
+    throw new AppError(
+      "Turnstile verification failed",
+      403,
+      ErrorCategory.AUTHENTICATION,
+    );
   }
 
   const expectedHostnames = new Set(
-    (process.env.VITE_PERFXCEL_TURNSTILE_HOSTNAMES ?? "dev.perfxcel.com,perfxcel.com")
+    (
+      process.env.VITE_PERFXCEL_TURNSTILE_HOSTNAMES ??
+      "dev.perfxcel.com,perfxcel.com"
+    )
       .split(",")
       .map((hostname) => hostname.trim())
-      .filter(Boolean)
+      .filter(Boolean),
   );
 
-  if (expectedHostnames.size > 0 && !expectedHostnames.has(turnstileData.hostname)) {
-      throw new AppError("Turnstile hostname mismatch", 403, ErrorCategory.AUTHENTICATION);
+  if (
+    expectedHostnames.size > 0 &&
+    !expectedHostnames.has(turnstileData.hostname)
+  ) {
+    throw new AppError(
+      "Turnstile hostname mismatch",
+      403,
+      ErrorCategory.AUTHENTICATION,
+    );
   }
 
   const { data, error } = await supabase
     .from("certificates")
-    .select("credential_id, issued_at, pdf_url, enrollments(id, course_interests(name, courses(title)))")
+    .select(
+      "credential_id, issued_at, pdf_url, enrollments(id, course_interests(name, courses(title)))",
+    )
     .eq("credential_id", credential_id)
     .maybeSingle();
 
@@ -48,14 +74,14 @@ export const verifyCertificate = async (req: Request, res: Response) => {
   if (!data) {
     return res.status(200).json({
       status: "success",
-      data: { valid: false }
+      data: { valid: false },
     });
   }
 
-  // Supabase returns nested joins as objects, or arrays of objects. 
+  // Supabase returns nested joins as objects, or arrays of objects.
   // For standard joins where it's 1-to-1, it's an object.
   const enrollments: any = data.enrollments;
-  
+
   return res.status(200).json({
     status: "success",
     data: {
@@ -64,8 +90,8 @@ export const verifyCertificate = async (req: Request, res: Response) => {
       course_title: enrollments?.course_interests?.courses?.title,
       issued_at: data.issued_at,
       credential_id: data.credential_id,
-      pdf_url: data.pdf_url
-    }
+      pdf_url: data.pdf_url,
+    },
   });
 };
 
@@ -85,20 +111,26 @@ export const downloadCertificate = async (req: Request, res: Response) => {
 
   // Fetch the PDF from internal Supabase storage
   const storageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/certificates/${id}.pdf`;
-  
+
   try {
     const response = await fetch(storageUrl);
     if (!response.ok) {
       throw new Error(`Storage returned ${response.status}`);
     }
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="certificate_${id}.pdf"`);
-    
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="certificate_${id}.pdf"`,
+    );
+
     const buffer = await response.arrayBuffer();
     res.send(Buffer.from(buffer));
   } catch (err) {
-    throw new AppError("Failed to fetch certificate", 500, ErrorCategory.SYSTEM);
+    throw new AppError(
+      "Failed to fetch certificate",
+      500,
+      ErrorCategory.SYSTEM,
+    );
   }
 };
-

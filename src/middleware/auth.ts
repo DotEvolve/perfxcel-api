@@ -23,9 +23,7 @@ export const requireAuth = async (
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new AuthenticationError(
-      "Missing or malformed Authorization header",
-    );
+    throw new AuthenticationError("Missing or malformed Authorization header");
   }
 
   const token = authHeader.slice(7); // strip "Bearer "

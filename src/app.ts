@@ -33,10 +33,12 @@ const app = express();
 // Security and Logging Middlewares
 app.use(helmet());
 
-const allowedOrigins = process.env.PERFXCEL_CORS_ORIGINS?.split(",").map((o) => o.trim()) || [
+const allowedOrigins = process.env.PERFXCEL_CORS_ORIGINS?.split(",").map((o) =>
+  o.trim(),
+) || [
   "https://perfxcel.com",
   "https://www.perfxcel.com",
-  "https://admin.perfxcel.com"
+  "https://admin.perfxcel.com",
 ];
 
 app.use(
@@ -44,11 +46,16 @@ app.use(
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
       if (allowedOrigins.indexOf(origin) === -1) {
-        return callback(new Error("The CORS policy for this site does not allow access from the specified Origin."), false);
+        return callback(
+          new Error(
+            "The CORS policy for this site does not allow access from the specified Origin.",
+          ),
+          false,
+        );
       }
       return callback(null, true);
     },
-  })
+  }),
 );
 
 app.use(morgan("dev"));

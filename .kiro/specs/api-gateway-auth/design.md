@@ -50,7 +50,9 @@ export const requireAuth = async (
 ): Promise<void> => {
   // Development bypass — never remove this guard
   if (!supabaseConfigured) {
-    console.warn("[requireAuth] Supabase not configured — skipping auth (dev only)");
+    console.warn(
+      "[requireAuth] Supabase not configured — skipping auth (dev only)",
+    );
     return next();
   }
 
@@ -74,6 +76,7 @@ export const requireAuth = async (
 ```
 
 Design notes:
+
 - `supabaseConfigured` is evaluated once at module load time — not on every request — avoiding repeated `process.env` reads.
 - `AuthenticationError` from `@dotevolve/error-utils` maps to HTTP 401. `asyncHandler` in route files will catch thrown errors and forward them to `errorHandlerMiddleware`.
 - The middleware itself is `async` so it can `await supabase.auth.getUser`. But it is NOT wrapped in `asyncHandler` here — it is applied directly in route files. Each route file must either wrap it in `asyncHandler` or handle the `async` throw with the framework's error propagation. Since Express 5 handles async middleware rejections natively, no wrapper is needed.
@@ -91,7 +94,15 @@ Design notes:
 import { Router } from "express";
 import { asyncHandler } from "@dotevolve/error-utils";
 import { requireAuth } from "../middleware/auth";
-import { getCourses, getCourse, createCourse, updateCourse, deleteCourse, registerInterest, bulkUpdateCourses } from "../controllers/courseController";
+import {
+  getCourses,
+  getCourse,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+  registerInterest,
+  bulkUpdateCourses,
+} from "../controllers/courseController";
 
 const router = Router();
 
@@ -161,13 +172,13 @@ Request arrives at protected route
 
 ## Files Changed
 
-| File | Change |
-|---|---|
-| `src/types/express.d.ts` | **NEW** — `req.user` augmentation |
-| `src/middleware/auth.ts` | **NEW** — `requireAuth` middleware |
-| `src/routes/courses.ts` | **MODIFY** — add `requireAuth` to all admin routes; keep `POST /:id/interest` public |
-| `src/routes/taxonomies.ts` | **MODIFY** — add `requireAuth` to all routes |
-| `src/routes/interests.ts` | **MODIFY** — add `requireAuth` to all routes |
-| `src/routes/enrollments.ts` | **MODIFY** — add `requireAuth` to all routes |
-| `src/routes/metrics.ts` | **MODIFY** — add `requireAuth`; remove the TODO comment |
-| `src/__tests__/middleware/auth.test.ts` | **NEW** — unit tests |
+| File                                    | Change                                                                               |
+| --------------------------------------- | ------------------------------------------------------------------------------------ |
+| `src/types/express.d.ts`                | **NEW** — `req.user` augmentation                                                    |
+| `src/middleware/auth.ts`                | **NEW** — `requireAuth` middleware                                                   |
+| `src/routes/courses.ts`                 | **MODIFY** — add `requireAuth` to all admin routes; keep `POST /:id/interest` public |
+| `src/routes/taxonomies.ts`              | **MODIFY** — add `requireAuth` to all routes                                         |
+| `src/routes/interests.ts`               | **MODIFY** — add `requireAuth` to all routes                                         |
+| `src/routes/enrollments.ts`             | **MODIFY** — add `requireAuth` to all routes                                         |
+| `src/routes/metrics.ts`                 | **MODIFY** — add `requireAuth`; remove the TODO comment                              |
+| `src/__tests__/middleware/auth.test.ts` | **NEW** — unit tests                                                                 |

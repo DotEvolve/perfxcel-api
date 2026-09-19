@@ -1,11 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import { createClient } from "@supabase/supabase-js";
-import { AuthenticationError, AuthorizationError } from "@dotevolve/error-utils";
+import {
+  AuthenticationError,
+  AuthorizationError,
+} from "@dotevolve/error-utils";
 
 // A separate client targeting the `public` schema (no perfxcel schema override)
 const portalSupabase = createClient(
   process.env.SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "",
 );
 
 const supabaseConfigured =
@@ -15,11 +18,11 @@ const supabaseConfigured =
 export const requirePerfxcelTenant = async (
   req: Request,
   _res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   if (!supabaseConfigured) {
     console.warn(
-      "[requirePerfxcelTenant] Supabase not configured — tenant checks may fail if DB is required"
+      "[requirePerfxcelTenant] Supabase not configured — tenant checks may fail if DB is required",
     );
   }
 
@@ -46,7 +49,9 @@ export const requirePerfxcelTenant = async (
       .single();
 
     if (membershipError || !membership) {
-      return next(new AuthorizationError("Access restricted to PerfXcel tenant users"));
+      return next(
+        new AuthorizationError("Access restricted to PerfXcel tenant users"),
+      );
     }
 
     req.tenantId = tenant.id;

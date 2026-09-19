@@ -3,12 +3,13 @@ import { supabase } from "../db/supabase";
 import { AppError, ErrorCategory } from "@dotevolve/error-utils";
 
 export const getTaxonomies = async (req: Request, res: Response) => {
-  const [categoriesRes, citiesRes, associationsRes, deliveryModesRes] = await Promise.all([
-    supabase.from("categories").select("*").order("name"),
-    supabase.from("cities").select("*").order("name"),
-    supabase.from("associations").select("*").order("name"),
-    supabase.from("delivery_modes").select("*").order("name"),
-  ]);
+  const [categoriesRes, citiesRes, associationsRes, deliveryModesRes] =
+    await Promise.all([
+      supabase.from("categories").select("*").order("name"),
+      supabase.from("cities").select("*").order("name"),
+      supabase.from("associations").select("*").order("name"),
+      supabase.from("delivery_modes").select("*").order("name"),
+    ]);
 
   if (categoriesRes.error)
     throw new AppError(categoriesRes.error.message, 500, ErrorCategory.SYSTEM);
@@ -41,7 +42,11 @@ export const getTaxonomies = async (req: Request, res: Response) => {
 export const createTaxonomyItem = async (req: Request, res: Response) => {
   const { type } = req.params; // 'categories', 'cities', 'associations'
 
-  if (!["categories", "cities", "associations", "delivery_modes"].includes(type as string)) {
+  if (
+    !["categories", "cities", "associations", "delivery_modes"].includes(
+      type as string,
+    )
+  ) {
     throw new AppError("Invalid taxonomy type", 400, ErrorCategory.VALIDATION);
   }
 
@@ -64,7 +69,11 @@ export const createTaxonomyItem = async (req: Request, res: Response) => {
 export const updateTaxonomyItem = async (req: Request, res: Response) => {
   const { type, id } = req.params;
 
-  if (!["categories", "cities", "associations", "delivery_modes"].includes(type as string)) {
+  if (
+    !["categories", "cities", "associations", "delivery_modes"].includes(
+      type as string,
+    )
+  ) {
     throw new AppError("Invalid taxonomy type", 400, ErrorCategory.VALIDATION);
   }
 
@@ -88,7 +97,11 @@ export const updateTaxonomyItem = async (req: Request, res: Response) => {
 export const deleteTaxonomyItem = async (req: Request, res: Response) => {
   const { type, id } = req.params;
 
-  if (!["categories", "cities", "associations", "delivery_modes"].includes(type as string)) {
+  if (
+    !["categories", "cities", "associations", "delivery_modes"].includes(
+      type as string,
+    )
+  ) {
     throw new AppError("Invalid taxonomy type", 400, ErrorCategory.VALIDATION);
   }
 

@@ -3,7 +3,7 @@ import { supabase } from "../db/supabase";
 import { AppError, ErrorCategory } from "@dotevolve/error-utils";
 
 // ---------------------------------------------------------------------------
-// In-memory cache — interim solution until Redis is wired up (see GitHub #3) 
+// In-memory cache — interim solution until Redis is wired up (see GitHub #3)
 // ---------------------------------------------------------------------------
 const CACHE_TTL_MS = 300_000; // 5 minutes
 
@@ -14,7 +14,10 @@ interface CacheEntry {
 
 let metricsCache: CacheEntry | null = null;
 
-export const getDashboardMetrics = async (req: Request, res: Response): Promise<void> => {
+export const getDashboardMetrics = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   // Return cached response if still valid
   if (metricsCache && metricsCache.expiresAt > Date.now()) {
     res.status(200).json({ status: "success", data: metricsCache.data });
@@ -25,11 +28,24 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
 
   const [
     courses,
-    categories, cities, associations, deliveryModes,
-    interestsNew, interestsContacted, interestsEnrolled, interestsRejected, interestsTotal,
-    enrollmentsPending, enrollmentsInProgress, enrollmentsAchieved, enrollmentsDropped, enrollmentsTotal,
+    categories,
+    cities,
+    associations,
+    deliveryModes,
+    interestsNew,
+    interestsContacted,
+    interestsEnrolled,
+    interestsRejected,
+    interestsTotal,
+    enrollmentsPending,
+    enrollmentsInProgress,
+    enrollmentsAchieved,
+    enrollmentsDropped,
+    enrollmentsTotal,
     certificatesTotal,
-    allCourses, allInterests, allEnrollments
+    allCourses,
+    allInterests,
+    allEnrollments,
   ] = await Promise.all([
     supabase.from("courses").select("*", count),
     supabase.from("categories").select("*", count),
@@ -37,9 +53,18 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
     supabase.from("associations").select("*", count),
     supabase.from("delivery_modes").select("*", count),
     supabase.from("course_interests").select("*", count).eq("status", "new"),
-    supabase.from("course_interests").select("*", count).eq("status", "contacted"),
-    supabase.from("course_interests").select("*", count).eq("status", "enrolled"),
-    supabase.from("course_interests").select("*", count).eq("status", "rejected"),
+    supabase
+      .from("course_interests")
+      .select("*", count)
+      .eq("status", "contacted"),
+    supabase
+      .from("course_interests")
+      .select("*", count)
+      .eq("status", "enrolled"),
+    supabase
+      .from("course_interests")
+      .select("*", count)
+      .eq("status", "rejected"),
     supabase.from("course_interests").select("*", count),
     supabase.from("enrollments").select("*", count).eq("status", "pending"),
     supabase.from("enrollments").select("*", count).eq("status", "in_progress"),
@@ -49,18 +74,34 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
     supabase.from("certificates").select("*", count),
     supabase.from("courses").select("id, course_categories(categories(name))"),
     supabase.from("course_interests").select("id, courses(title)"),
-    supabase.from("enrollments").select("status, course_interests(courses(title))"),
+    supabase
+      .from("enrollments")
+      .select("status, course_interests(courses(title))"),
   ]);
 
   // Check each result for errors, throw AppError if any query failed
   const results = [
-    courses, categories, cities, associations, deliveryModes,
-    interestsNew, interestsContacted, interestsEnrolled, interestsRejected, interestsTotal,
-    enrollmentsPending, enrollmentsInProgress, enrollmentsAchieved, enrollmentsDropped, enrollmentsTotal,
+    courses,
+    categories,
+    cities,
+    associations,
+    deliveryModes,
+    interestsNew,
+    interestsContacted,
+    interestsEnrolled,
+    interestsRejected,
+    interestsTotal,
+    enrollmentsPending,
+    enrollmentsInProgress,
+    enrollmentsAchieved,
+    enrollmentsDropped,
+    enrollmentsTotal,
     certificatesTotal,
-    allCourses, allInterests, allEnrollments
+    allCourses,
+    allInterests,
+    allEnrollments,
   ];
-  
+
   for (const result of results) {
     if (result.error) {
       throw new AppError(result.error.message, 500, ErrorCategory.SYSTEM);
@@ -76,7 +117,8 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
         categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
       });
     } else {
-      categoryCounts["Uncategorized"] = (categoryCounts["Uncategorized"] || 0) + 1;
+      categoryCounts["Uncategorized"] =
+        (categoryCounts["Uncategorized"] || 0) + 1;
     }
   });
   const topCategories = Object.entries(categoryCounts)
@@ -94,7 +136,10 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
     .slice(0, 5)
     .map(([title, count]) => ({ title, count }));
 
-  const completionStats: Record<string, { achieved: number; in_progress: number }> = {};
+  const completionStats: Record<
+    string,
+    { achieved: number; in_progress: number }
+  > = {};
   allEnrollments.data?.forEach((e: any) => {
     const title = e.course_interests?.courses?.title ?? "Unknown Course";
     if (!completionStats[title]) {
@@ -140,7 +185,7 @@ export const getDashboardMetrics = async (req: Request, res: Response): Promise<
       topCategories,
       mostDemanded,
       topCompletions,
-    }
+    },
   };
 
   // Populate cache

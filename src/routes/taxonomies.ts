@@ -12,8 +12,23 @@ import {
 const router = Router();
 
 router.get("/", asyncHandler(getTaxonomies));
-router.post("/:type", requireAuth, requirePerfxcelTenant, asyncHandler(createTaxonomyItem));
-router.put("/:type/:id", requireAuth, requirePerfxcelTenant, asyncHandler(updateTaxonomyItem));
-router.delete("/:type/:id", requireAuth, requirePerfxcelTenant, asyncHandler(deleteTaxonomyItem));
+router.post(
+  "/:type",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(createTaxonomyItem),
+);
+router.put(
+  "/:type/:id",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(updateTaxonomyItem),
+);
+router.delete(
+  "/:type/:id",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(deleteTaxonomyItem),
+);
 
 export default router;

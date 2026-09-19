@@ -43,18 +43,21 @@ src/
 ## Authentication & Tenant Middleware
 
 ### `requireAuth` (`src/middleware/auth.ts`)
+
 - Validates `Authorization: Bearer <token>` with `supabase.auth.getUser(token)`.
 - Attaches `req.user` (Supabase `User` object).
 - Throws `AuthenticationError` for missing/malformed headers or invalid tokens.
 - **Dev bypass:** if `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` are unset, auth is skipped with a warning. Never remove this guard.
 
 ### `requirePerfxcelTenant` (`src/middleware/tenant.ts`)
+
 - Performs a DB lookup to confirm the authenticated user is a member of the `perfxcel` tenant.
 - Sets `req.tenantId` on success.
 - Throws `AuthorizationError` if the tenant or membership is not found.
 - Depends on `req.user` — must be chained after `requireAuth`.
 
 ### Route Auth Pattern
+
 ```ts
 // Public
 router.get("/", asyncHandler(handler));
@@ -77,10 +80,13 @@ router.post("/", requireAuth, requirePerfxcelTenant, asyncHandler(handler));
 ## Response Format
 
 Successful responses follow this shape:
+
 ```json
 { "status": "success", "data": { ... } }
 ```
+
 Paginated list responses include:
+
 ```json
 { "status": "success", "results": 10, "total": 100, "page": 1, "limit": 20, "data": [...] }
 ```
@@ -91,15 +97,15 @@ Course interest registration (`POST /api/v1/courses/:id/interest`) verifies a Tu
 
 ## Environment Variables
 
-| Variable | Purpose |
-|---|---|
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (bypasses RLS) |
-| `SENTRY_DSN` | Sentry error reporting |
-| `VITE_PERFXCEL_TURNSTILE_SECRET_KEY` | Turnstile server-side secret |
-| `VITE_PERFXCEL_TURNSTILE_HOSTNAMES` | Comma-separated allowed hostnames |
-| `PORT` | HTTP server port (default `8000`) |
-| `NODE_ENV` | Set to `test` to prevent server startup |
+| Variable                             | Purpose                                 |
+| ------------------------------------ | --------------------------------------- |
+| `SUPABASE_URL`                       | Supabase project URL                    |
+| `SUPABASE_SERVICE_ROLE_KEY`          | Service role key (bypasses RLS)         |
+| `SENTRY_DSN`                         | Sentry error reporting                  |
+| `VITE_PERFXCEL_TURNSTILE_SECRET_KEY` | Turnstile server-side secret            |
+| `VITE_PERFXCEL_TURNSTILE_HOSTNAMES`  | Comma-separated allowed hostnames       |
+| `PORT`                               | HTTP server port (default `8000`)       |
+| `NODE_ENV`                           | Set to `test` to prevent server startup |
 
 ## Testing
 

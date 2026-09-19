@@ -13,7 +13,11 @@ router.post(
   requirePerfxcelTenant,
   asyncHandler(async (req: Request, res: Response) => {
     if (!portalUrl) {
-      throw new AppError("Audit log service is not configured", 502, ErrorCategory.SYSTEM);
+      throw new AppError(
+        "Audit log service is not configured",
+        502,
+        ErrorCategory.SYSTEM,
+      );
     }
 
     try {
@@ -35,9 +39,13 @@ router.post(
 
       res.status(200).json(data);
     } catch (error) {
-      throw new AppError("Failed to communicate with audit log service", 502, ErrorCategory.SYSTEM);
+      throw new AppError(
+        "Failed to communicate with audit log service",
+        502,
+        ErrorCategory.SYSTEM,
+      );
     }
-  })
+  }),
 );
 
 router.get(
@@ -46,7 +54,11 @@ router.get(
   requirePerfxcelTenant,
   asyncHandler(async (req: Request, res: Response) => {
     if (!portalUrl) {
-      throw new AppError("Audit log service is not configured", 502, ErrorCategory.SYSTEM);
+      throw new AppError(
+        "Audit log service is not configured",
+        502,
+        ErrorCategory.SYSTEM,
+      );
     }
 
     try {
@@ -70,9 +82,13 @@ router.get(
 
       res.status(200).json(data);
     } catch (error) {
-      throw new AppError("Failed to communicate with audit log service", 502, ErrorCategory.SYSTEM);
+      throw new AppError(
+        "Failed to communicate with audit log service",
+        502,
+        ErrorCategory.SYSTEM,
+      );
     }
-  })
+  }),
 );
 
 export default router;

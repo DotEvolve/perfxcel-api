@@ -53,17 +53,17 @@ describe("requireAuth", () => {
 
     it("throws AuthenticationError when Authorization header is missing", async () => {
       const req = mockReq(); // no header
-      await expect(
-        requireAuth(req, mockRes, mockNext),
-      ).rejects.toThrow(AuthenticationError);
+      await expect(requireAuth(req, mockRes, mockNext)).rejects.toThrow(
+        AuthenticationError,
+      );
       expect(mockNext).not.toHaveBeenCalled();
     });
 
     it("throws AuthenticationError when Authorization header is malformed (no Bearer prefix)", async () => {
       const req = mockReq("Token some-token-value");
-      await expect(
-        requireAuth(req, mockRes, mockNext),
-      ).rejects.toThrow(AuthenticationError);
+      await expect(requireAuth(req, mockRes, mockNext)).rejects.toThrow(
+        AuthenticationError,
+      );
       expect(mockNext).not.toHaveBeenCalled();
     });
 
@@ -74,9 +74,9 @@ describe("requireAuth", () => {
       });
 
       const req = mockReq("Bearer valid.looking.token");
-      await expect(
-        requireAuth(req, mockRes, mockNext),
-      ).rejects.toThrow(AuthenticationError);
+      await expect(requireAuth(req, mockRes, mockNext)).rejects.toThrow(
+        AuthenticationError,
+      );
       expect(mockNext).not.toHaveBeenCalled();
     });
 
@@ -87,9 +87,9 @@ describe("requireAuth", () => {
       });
 
       const req = mockReq("Bearer valid.looking.token");
-      await expect(
-        requireAuth(req, mockRes, mockNext),
-      ).rejects.toThrow(AuthenticationError);
+      await expect(requireAuth(req, mockRes, mockNext)).rejects.toThrow(
+        AuthenticationError,
+      );
       expect(mockNext).not.toHaveBeenCalled();
     });
 
@@ -106,7 +106,9 @@ describe("requireAuth", () => {
       await requireAuth(req, mockRes, next);
 
       expect(next).toHaveBeenCalledTimes(1);
-      expect((req as Request & { user?: typeof mockUser }).user).toEqual(mockUser);
+      expect((req as Request & { user?: typeof mockUser }).user).toEqual(
+        mockUser,
+      );
       expect(getUser).toHaveBeenCalledWith("valid.jwt.token");
     });
   });
@@ -133,7 +135,9 @@ describe("requireAuth", () => {
         },
       }));
 
-      const { requireAuth: requireAuthBypass } = require("../../middleware/auth");
+      const {
+        requireAuth: requireAuthBypass,
+      } = require("../../middleware/auth");
       const { supabase: bypassSupabase } = require("../../db/supabase");
       const bypassGetUser = bypassSupabase.auth.getUser as jest.Mock;
 
@@ -147,7 +151,8 @@ describe("requireAuth", () => {
 
       // Restore env vars
       if (originalUrl !== undefined) process.env.SUPABASE_URL = originalUrl;
-      if (originalKey !== undefined) process.env.SUPABASE_SERVICE_ROLE_KEY = originalKey;
+      if (originalKey !== undefined)
+        process.env.SUPABASE_SERVICE_ROLE_KEY = originalKey;
     });
   });
 });

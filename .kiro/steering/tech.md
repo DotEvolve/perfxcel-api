@@ -6,26 +6,26 @@ inclusion: always
 
 ## Core Dependencies
 
-| Concern | Library | Version |
-|---|---|---|
-| Runtime | Node.js | 24.x |
-| Language | TypeScript | 6.x |
-| Framework | Express | 5.x |
-| Auth | @supabase/supabase-js | — |
-| HTTP Client | Axios | — |
-| Proxy | express-http-proxy | — |
-| Logging | Winston | — |
-| Error Handling | @dotevolve/error-utils/express | — |
-| Error Tracking | @sentry/node | — |
+| Concern        | Library                        | Version |
+| -------------- | ------------------------------ | ------- |
+| Runtime        | Node.js                        | 24.x    |
+| Language       | TypeScript                     | 6.x     |
+| Framework      | Express                        | 5.x     |
+| Auth           | @supabase/supabase-js          | —       |
+| HTTP Client    | Axios                          | —       |
+| Proxy          | express-http-proxy             | —       |
+| Logging        | Winston                        | —       |
+| Error Handling | @dotevolve/error-utils/express | —       |
+| Error Tracking | @sentry/node                   | —       |
 
 ## Testing
 
-| Concern | Library | Version |
-|---|---|---|
-| Runner | Jest | 30.x |
-| HTTP Integration | supertest | — |
-| HTTP Mocking | nock | — |
-| Property-Based | fast-check | — |
+| Concern          | Library    | Version |
+| ---------------- | ---------- | ------- |
+| Runner           | Jest       | 30.x    |
+| HTTP Integration | supertest  | —       |
+| HTTP Mocking     | nock       | —       |
+| Property-Based   | fast-check | —       |
 
 - Tests live in `__tests__/`. Property-based tests use the `.property.test.js` suffix.
 - The app is exported as `default` from `api/index.ts` for `supertest` integration tests.
@@ -43,13 +43,13 @@ npm run test:coverage  # Tests with coverage
 
 ## Environment Variables
 
-| Variable | Description |
-|---|---|
-| `PORT` | Server port (default: `8000`) |
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_ANON_KEY` | Supabase anon key |
+| Variable               | Description                                                            |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `PORT`                 | Server port (default: `8000`)                                          |
+| `SUPABASE_URL`         | Supabase project URL                                                   |
+| `SUPABASE_ANON_KEY`    | Supabase anon key                                                      |
 | `WORKFLOW_SERVICE_URL` | Downstream workflow service (default: `https://workflow.perfxcel.net`) |
-| `SENTRY_DSN` | Sentry DSN for error tracking |
+| `SENTRY_DSN`           | Sentry DSN for error tracking                                          |
 
 OCI deployments inject secrets at runtime from OCI Vault via `scripts/compose-up.sh` (mapped by `OCI_SECRET_ID_*` in `.env.dev` / `.env.prod`). Never store plaintext credentials in the repo or on the host. OCI Vault is skipped unless `NODE_ENV` is `production`/`staging` or `OCI_VAULT_ENABLED=true`.
 
