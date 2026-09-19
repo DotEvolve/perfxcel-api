@@ -47,7 +47,7 @@ export const requestTrainingPlan = async (req: Request, res: Response) => {
 
   // The generated token is data.token
   // Usually API URL is the base for the backend, e.g. https://api-dev.perfxcel.com/api/v1
-  const downloadLink = `${process.env.VITE_API_URL || "https://api-dev.perfxcel.com/api/v1"}/training-plan/download/${data.token}`;
+  const downloadLink = `${process.env.PERFXCEL_API_URL || "https://api.perfxcel.com/api/v1"}/training-plan/download/${data.token}`;
 
   // Send email to user
   try {
