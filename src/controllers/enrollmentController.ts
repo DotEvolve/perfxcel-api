@@ -109,6 +109,12 @@ export const createEnrollment = async (req: Request, res: Response) => {
     throw new AppError(error.message, 500, ErrorCategory.SYSTEM);
   }
 
+  // Update interest status to enrolled
+  await supabase
+    .from("course_interests")
+    .update({ status: "enrolled" })
+    .eq("id", interest_id);
+
   res.status(201).json({
     status: "success",
     data,
