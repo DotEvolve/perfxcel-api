@@ -382,7 +382,11 @@ export const resendCertificate = async (req: Request, res: Response) => {
   }
 
   if (enrollment.status !== "achieved") {
-    throw new AppError("Certificate can only be resent for achieved enrollments", 400, ErrorCategory.VALIDATION);
+    throw new AppError(
+      "Certificate can only be resent for achieved enrollments",
+      400,
+      ErrorCategory.VALIDATION,
+    );
   }
 
   const { data: certData } = await supabase
@@ -400,15 +404,19 @@ export const resendCertificate = async (req: Request, res: Response) => {
     process.env.SUPABASE_URL || "",
     process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   );
-  
+
   const { data: pdfBlob, error: downloadError } = await storageClient.storage
     .from("certificates")
     .download(`${certData.credential_id}.pdf`);
 
   if (downloadError || !pdfBlob) {
-     throw new AppError("Failed to download certificate for sending", 500, ErrorCategory.SYSTEM);
+    throw new AppError(
+      "Failed to download certificate for sending",
+      500,
+      ErrorCategory.SYSTEM,
+    );
   }
-  
+
   const arrayBuffer = await pdfBlob.arrayBuffer();
   const pdfBuffer = Buffer.from(arrayBuffer);
 
@@ -420,5 +428,7 @@ export const resendCertificate = async (req: Request, res: Response) => {
     certData.credential_id,
   );
 
-  res.status(200).json({ status: "success", message: "Certificate resent successfully" });
+  res
+    .status(200)
+    .json({ status: "success", message: "Certificate resent successfully" });
 };
