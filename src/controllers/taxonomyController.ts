@@ -1,14 +1,14 @@
 import { Request, Response } from "express";
-import { supabase } from "../db/supabase";
+import { perfxcelSupabase } from "../db/supabase";
 import { AppError, ErrorCategory } from "@dotevolve/error-utils";
 
 export const getTaxonomies = async (req: Request, res: Response) => {
   const [categoriesRes, citiesRes, associationsRes, deliveryModesRes] =
     await Promise.all([
-      supabase.from("categories").select("*").order("name"),
-      supabase.from("cities").select("*").order("name"),
-      supabase.from("associations").select("*").order("name"),
-      supabase.from("delivery_modes").select("*").order("name"),
+      perfxcelSupabase.from("categories").select("*").order("name"),
+      perfxcelSupabase.from("cities").select("*").order("name"),
+      perfxcelSupabase.from("associations").select("*").order("name"),
+      perfxcelSupabase.from("delivery_modes").select("*").order("name"),
     ]);
 
   if (categoriesRes.error)
@@ -50,7 +50,7 @@ export const createTaxonomyItem = async (req: Request, res: Response) => {
     throw new AppError("Invalid taxonomy type", 400, ErrorCategory.VALIDATION);
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await perfxcelSupabase
     .from(type as any)
     .insert([req.body])
     .select()
@@ -77,7 +77,7 @@ export const updateTaxonomyItem = async (req: Request, res: Response) => {
     throw new AppError("Invalid taxonomy type", 400, ErrorCategory.VALIDATION);
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await perfxcelSupabase
     .from(type as any)
     .update(req.body)
     .eq("id", id)
@@ -105,7 +105,7 @@ export const deleteTaxonomyItem = async (req: Request, res: Response) => {
     throw new AppError("Invalid taxonomy type", 400, ErrorCategory.VALIDATION);
   }
 
-  const { error } = await supabase
+  const { error } = await perfxcelSupabase
     .from(type as any)
     .delete()
     .eq("id", id);

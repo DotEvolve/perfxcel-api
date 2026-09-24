@@ -3,7 +3,7 @@ import { asyncHandler } from "@dotevolve/error-utils";
 import { requireAuth } from "../middleware/auth";
 import { requirePerfxcelTenant } from "../middleware/tenant";
 import { validateBody } from "../middleware/validate";
-import { interestSchema } from "../validators/schemas";
+import { interestSchema, courseInputSchema } from "../validators/schemas";
 import { strictLimiter } from "../middleware/rateLimiter";
 import {
   getCourses,
@@ -18,28 +18,7 @@ import { AppError, ErrorCategory } from "@dotevolve/error-utils";
 
 const router = Router();
 
-const validateCourseInput = (req: any, res: any, next: any) => {
-  const { status, is_public } = req.body;
-  if (status && !["active", "archived"].includes(status)) {
-    return next(
-      new AppError(
-        "Invalid status. Must be active or archived.",
-        400,
-        ErrorCategory.VALIDATION,
-      ),
-    );
-  }
-  if (is_public !== undefined && typeof is_public !== "boolean") {
-    return next(
-      new AppError(
-        "is_public must be a boolean",
-        400,
-        ErrorCategory.VALIDATION,
-      ),
-    );
-  }
-  next();
-};
+// Validate course using zod in routes below instead of validateCourseInput.
 
 // Static-segment routes first — must be above /:id to prevent dynamic capture
 router.get("/", asyncHandler(getCourses));
@@ -47,7 +26,7 @@ router.post(
   "/",
   requireAuth,
   requirePerfxcelTenant,
-  validateCourseInput,
+  validateBody(courseInputSchema),
   asyncHandler(createCourse),
 );
 router.patch(
@@ -69,7 +48,7 @@ router.put(
   "/:id",
   requireAuth,
   requirePerfxcelTenant,
-  validateCourseInput,
+  validateBody(courseInputSchema),
   asyncHandler(updateCourse),
 );
 router.delete(

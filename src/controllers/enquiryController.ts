@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
-import { supabase } from "../db/supabase";
+import { perfxcelSupabase } from "../db/supabase";
 import { AppError, ErrorCategory } from "@dotevolve/error-utils";
 import nodemailer from "nodemailer";
+import { logAuditEvent } from "../utils/auditLogger";
 
 export const getEnquiries = async (req: Request, res: Response) => {
   const { status, search, page, limit } = req.query;
 
-  let query = supabase
+  let query = perfxcelSupabase
     .from("enquiries")
     .select("*, courses(title)", { count: "exact" });
 
@@ -50,7 +51,7 @@ export const updateEnquiryStatus = async (req: Request, res: Response) => {
     throw new AppError("Invalid status", 400, ErrorCategory.VALIDATION);
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await perfxcelSupabase
     .from("enquiries")
     .update({ status })
     .eq("id", id)
@@ -120,7 +121,7 @@ export const submitContact = async (req: Request, res: Response) => {
     );
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await perfxcelSupabase
     .from("enquiries")
     .insert([{ name, email, company, message, course_id }])
     .select()
@@ -129,6 +130,15 @@ export const submitContact = async (req: Request, res: Response) => {
   if (error) {
     throw new AppError(error.message, 400, ErrorCategory.VALIDATION);
   }
+
+  await logAuditEvent({
+    actorId: "system",
+    actorEmail: email,
+    action: "FORM_SUBMITTED",
+    entityType: "enquiries",
+    entityId: data.id,
+    details: { name, email, course_id }
+  });
 
   // Send email to admin
   try {

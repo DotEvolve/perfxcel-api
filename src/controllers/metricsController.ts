@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { supabase } from "../db/supabase";
+import { perfxcelSupabase } from "../db/supabase";
 import { AppError, ErrorCategory } from "@dotevolve/error-utils";
 
 // ---------------------------------------------------------------------------
@@ -47,34 +47,34 @@ export const getDashboardMetrics = async (
     allInterests,
     allEnrollments,
   ] = await Promise.all([
-    supabase.from("courses").select("*", count),
-    supabase.from("categories").select("*", count),
-    supabase.from("cities").select("*", count),
-    supabase.from("associations").select("*", count),
-    supabase.from("delivery_modes").select("*", count),
-    supabase.from("course_interests").select("*", count).eq("status", "new"),
-    supabase
+    perfxcelSupabase.from("courses").select("*", count),
+    perfxcelSupabase.from("categories").select("*", count),
+    perfxcelSupabase.from("cities").select("*", count),
+    perfxcelSupabase.from("associations").select("*", count),
+    perfxcelSupabase.from("delivery_modes").select("*", count),
+    perfxcelSupabase.from("course_interests").select("*", count).eq("status", "new"),
+    perfxcelSupabase
       .from("course_interests")
       .select("*", count)
       .eq("status", "contacted"),
-    supabase
+    perfxcelSupabase
       .from("course_interests")
       .select("*", count)
       .eq("status", "enrolled"),
-    supabase
+    perfxcelSupabase
       .from("course_interests")
       .select("*", count)
       .eq("status", "rejected"),
-    supabase.from("course_interests").select("*", count),
-    supabase.from("enrollments").select("*", count).eq("status", "pending"),
-    supabase.from("enrollments").select("*", count).eq("status", "in_progress"),
-    supabase.from("enrollments").select("*", count).eq("status", "achieved"),
-    supabase.from("enrollments").select("*", count).eq("status", "dropped"),
-    supabase.from("enrollments").select("*", count),
-    supabase.from("certificates").select("*", count),
-    supabase.from("courses").select("id, course_categories(categories(name))"),
-    supabase.from("course_interests").select("id, courses(title)"),
-    supabase
+    perfxcelSupabase.from("course_interests").select("*", count),
+    perfxcelSupabase.from("enrollments").select("*", count).eq("status", "pending"),
+    perfxcelSupabase.from("enrollments").select("*", count).eq("status", "in_progress"),
+    perfxcelSupabase.from("enrollments").select("*", count).eq("status", "achieved"),
+    perfxcelSupabase.from("enrollments").select("*", count).eq("status", "dropped"),
+    perfxcelSupabase.from("enrollments").select("*", count),
+    perfxcelSupabase.from("certificates").select("*", count),
+    perfxcelSupabase.from("courses").select("id, course_categories(categories(name))"),
+    perfxcelSupabase.from("course_interests").select("id, courses(title)"),
+    perfxcelSupabase
       .from("enrollments")
       .select("status, course_interests(courses(title))"),
   ]);

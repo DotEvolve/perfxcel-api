@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { supabase } from "../db/supabase";
+import { perfxcelSupabase } from "../db/supabase";
 import { AuthenticationError } from "@dotevolve/error-utils";
 
 // Evaluated once at module load — avoids repeated process.env reads per request
@@ -28,7 +28,7 @@ export const requireAuth = async (
 
   const token = authHeader.slice(7); // strip "Bearer "
 
-  const { data, error } = await supabase.auth.getUser(token);
+  const { data, error } = await perfxcelSupabase.auth.getUser(token);
 
   if (error || !data.user) {
     throw new AuthenticationError("Invalid or expired token");

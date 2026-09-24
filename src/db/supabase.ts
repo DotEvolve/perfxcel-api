@@ -11,8 +11,14 @@ if (!supabaseUrl || !supabaseKey) {
 
 // Create a Supabase client with the service role key to bypass RLS for admin operations.
 // We explicitly set the schema to 'perfxcel'.
-export const supabase = createClient(supabaseUrl, supabaseKey, {
+export const perfxcelSupabase = createClient(supabaseUrl, supabaseKey, {
   db: {
     schema: "perfxcel",
+  },
+});
+
+export const publicSupabase = createClient(supabaseUrl, supabaseKey, {
+  db: {
+    schema: "public",
   },
 });

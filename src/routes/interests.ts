@@ -7,11 +7,21 @@ import { interestStatusSchema } from "../validators/schemas";
 import {
   getInterests,
   updateInterestStatus,
+  downloadBrochure,
+  createInterestManual,
+  resendBrochure,
+  deleteInterests,
+  hardDeleteInterest
 } from "../controllers/interestController";
 
 const router = Router();
 
+router.get("/brochure/:token", asyncHandler(downloadBrochure));
+
 router.get("/", requireAuth, requirePerfxcelTenant, asyncHandler(getInterests));
+router.post("/", requireAuth, requirePerfxcelTenant, asyncHandler(createInterestManual));
+router.delete("/", requireAuth, requirePerfxcelTenant, asyncHandler(deleteInterests));
+
 router.patch(
   "/:id",
   requireAuth,
@@ -19,5 +29,8 @@ router.patch(
   validateBody(interestStatusSchema),
   asyncHandler(updateInterestStatus),
 );
+
+router.post("/:id/resend-brochure", requireAuth, requirePerfxcelTenant, asyncHandler(resendBrochure));
+router.post("/:id/hard-delete", requireAuth, requirePerfxcelTenant, asyncHandler(hardDeleteInterest));
 
 export default router;

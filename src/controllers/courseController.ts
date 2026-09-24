@@ -1,7 +1,10 @@
 import { Request, Response } from "express";
-import { supabase } from "../db/supabase";
+import { perfxcelSupabase } from "../db/supabase";
 import { NotFoundError, AppError, ErrorCategory } from "@dotevolve/error-utils";
 import { computeIsBlended } from "../utils/course";
+import { logAuditEvent } from "../utils/auditLogger";
+import { getSetting } from "../utils/settingsReader";
+import nodemailer from "nodemailer";
 
 const generateUniqueSlug = async (
   baseText: string,
@@ -15,7 +18,7 @@ const generateUniqueSlug = async (
   let counter = 1;
 
   while (true) {
-    let query = supabase.from("courses").select("id").eq("slug", slug);
+    let query = perfxcelSupabase.from("courses").select("id").eq("slug", slug);
     if (currentId) {
       query = query.neq("id", currentId);
     }
@@ -43,7 +46,7 @@ const fetchCourseWithRelations = async (identifier: string) => {
       identifier,
     );
 
-  let query = supabase.from("courses").select(`
+  let query = perfxcelSupabase.from("courses").select(`
       *,
       course_categories(categories(*)),
       course_cities(cities(*)),
@@ -105,7 +108,7 @@ export const getCourses = async (req: Request, res: Response) => {
   const innerAssoc = association_ids ? "!inner" : "";
   const innerDelivery = delivery_mode_ids ? "!inner" : "";
 
-  let query = supabase.from("courses").select(
+  let query = perfxcelSupabase.from("courses").select(
     `
       *,
       course_categories${innerCat}(category_id, categories(*)),
@@ -234,7 +237,7 @@ export const createCourse = async (req: Request, res: Response) => {
 
   const finalSlug = await generateUniqueSlug(inputSlug || coreFields.title);
 
-  const { data: course, error } = await supabase
+  const { data: course, error } = await perfxcelSupabase
     .from("courses")
     .insert([{ ...coreFields, slug: finalSlug }])
     .select()
@@ -247,41 +250,50 @@ export const createCourse = async (req: Request, res: Response) => {
   await Promise.all(
     [
       category_ids?.length > 0 &&
-        supabase.from("course_categories").insert(
-          category_ids.map((id: string) => ({
-            course_id: course.id,
-            category_id: id,
-          })),
-        ),
+      perfxcelSupabase.from("course_categories").insert(
+        category_ids.map((id: string) => ({
+          course_id: course.id,
+          category_id: id,
+        })),
+      ),
       city_ids?.length > 0 &&
-        supabase.from("course_cities").insert(
-          city_ids.map((id: string) => ({
-            course_id: course.id,
-            city_id: id,
-          })),
-        ),
+      perfxcelSupabase.from("course_cities").insert(
+        city_ids.map((id: string) => ({
+          course_id: course.id,
+          city_id: id,
+        })),
+      ),
       association_ids?.length > 0 &&
-        supabase.from("course_associations").insert(
-          association_ids.map((id: string) => ({
-            course_id: course.id,
-            association_id: id,
-          })),
-        ),
+      perfxcelSupabase.from("course_associations").insert(
+        association_ids.map((id: string) => ({
+          course_id: course.id,
+          association_id: id,
+        })),
+      ),
       delivery_mode_ids?.length > 0 &&
-        supabase.from("course_delivery_modes").insert(
-          delivery_mode_ids.map((id: string) => ({
-            course_id: course.id,
-            delivery_mode_id: id,
-          })),
-        ),
+      perfxcelSupabase.from("course_delivery_modes").insert(
+        delivery_mode_ids.map((id: string) => ({
+          course_id: course.id,
+          delivery_mode_id: id,
+        })),
+      ),
       schedules?.length > 0 &&
-        supabase
-          .from("course_schedules")
-          .insert(schedules.map((s: any) => ({ ...s, course_id: course.id }))),
+      perfxcelSupabase
+        .from("course_schedules")
+        .insert(schedules.map((s: any) => ({ ...s, course_id: course.id }))),
     ].filter(Boolean),
   );
 
   const full = await fetchCourseWithRelations(course.id);
+
+  await logAuditEvent({
+    actorId: (req as any).user?.id || "admin",
+    actorEmail: (req as any).user?.email || "admin@example.com",
+    action: "COURSE_CREATED",
+    entityType: "course",
+    entityId: course.id,
+    details: { title: course.title, short_code: course.short_code },
+  });
 
   res.status(201).json({
     status: "success",
@@ -303,7 +315,7 @@ export const updateCourse = async (req: Request, res: Response) => {
 
   const finalSlug = await generateUniqueSlug(inputSlug || coreFields.title, id);
 
-  const { data: course, error } = await supabase
+  const { data: course, error } = await perfxcelSupabase
     .from("courses")
     .update({ ...coreFields, slug: finalSlug })
     .eq("id", id)
@@ -319,57 +331,67 @@ export const updateCourse = async (req: Request, res: Response) => {
   }
 
   await Promise.all([
-    supabase.from("course_categories").delete().eq("course_id", id),
-    supabase.from("course_cities").delete().eq("course_id", id),
-    supabase.from("course_associations").delete().eq("course_id", id),
-    supabase.from("course_delivery_modes").delete().eq("course_id", id),
-    supabase.from("course_schedules").delete().eq("course_id", id),
+    perfxcelSupabase.from("course_categories").delete().eq("course_id", id),
+    perfxcelSupabase.from("course_cities").delete().eq("course_id", id),
+    perfxcelSupabase.from("course_associations").delete().eq("course_id", id),
+    perfxcelSupabase.from("course_delivery_modes").delete().eq("course_id", id),
+    perfxcelSupabase.from("course_schedules").delete().eq("course_id", id),
   ]);
 
   await Promise.all(
     [
       category_ids?.length > 0 &&
-        supabase.from("course_categories").insert(
-          category_ids.map((cid: string) => ({
-            course_id: id,
-            category_id: cid,
-          })),
-        ),
+      perfxcelSupabase.from("course_categories").insert(
+        category_ids.map((cid: string) => ({
+          course_id: id,
+          category_id: cid,
+        })),
+      ),
       city_ids?.length > 0 &&
-        supabase
-          .from("course_cities")
-          .insert(
-            city_ids.map((cid: string) => ({ course_id: id, city_id: cid })),
-          ),
+      perfxcelSupabase
+        .from("course_cities")
+        .insert(
+          city_ids.map((cid: string) => ({ course_id: id, city_id: cid })),
+        ),
       association_ids?.length > 0 &&
-        supabase.from("course_associations").insert(
-          association_ids.map((cid: string) => ({
-            course_id: id,
-            association_id: cid,
-          })),
-        ),
+      perfxcelSupabase.from("course_associations").insert(
+        association_ids.map((cid: string) => ({
+          course_id: id,
+          association_id: cid,
+        })),
+      ),
       delivery_mode_ids?.length > 0 &&
-        supabase.from("course_delivery_modes").insert(
-          delivery_mode_ids.map((cid: string) => ({
-            course_id: id,
-            delivery_mode_id: cid,
-          })),
-        ),
+      perfxcelSupabase.from("course_delivery_modes").insert(
+        delivery_mode_ids.map((cid: string) => ({
+          course_id: id,
+          delivery_mode_id: cid,
+        })),
+      ),
       schedules?.length > 0 &&
-        supabase.from("course_schedules").insert(
-          schedules.map((s: any) => ({
-            course_id: id,
-            start_date: s.start_date,
-            end_date: s.end_date,
-            location: s.location,
-            method: s.method,
-            status: s.status,
-          })),
-        ),
+      perfxcelSupabase.from("course_schedules").insert(
+        schedules.map((s: any) => ({
+          course_id: id,
+          start_date: s.start_date,
+          end_date: s.end_date,
+          location: s.location,
+          method: s.method,
+          status: s.status,
+        })),
+      ),
     ].filter(Boolean),
   );
 
   const full = await fetchCourseWithRelations(id);
+
+  const changed_fields = Object.keys(coreFields);
+  await logAuditEvent({
+    actorId: (req as any).user?.id || "admin",
+    actorEmail: (req as any).user?.email || "admin@example.com",
+    action: "COURSE_UPDATED",
+    entityType: "course",
+    entityId: id,
+    details: { title: course.title, changed_fields },
+  });
 
   res.status(200).json({
     status: "success",
@@ -387,7 +409,7 @@ export const bulkUpdateCourses = async (req: Request, res: Response) => {
     );
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await perfxcelSupabase
     .from("courses")
     .update(updates)
     .in("id", ids)
@@ -406,7 +428,7 @@ export const bulkUpdateCourses = async (req: Request, res: Response) => {
 export const deleteCourse = async (req: Request, res: Response) => {
   const id = req.params.id as string;
 
-  const { error } = await supabase
+  const { error } = await perfxcelSupabase
     .from("courses")
     .update({
       status: "deleted",
@@ -423,7 +445,7 @@ export const deleteCourse = async (req: Request, res: Response) => {
 
 export const registerInterest = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, email, phone, company, turnstileToken } = req.body;
+  const { name, email, phone, company, turnstileToken, request_brochure } = req.body;
 
   if (!turnstileToken) {
     throw new AppError(
@@ -475,9 +497,25 @@ export const registerInterest = async (req: Request, res: Response) => {
     );
   }
 
-  const { data, error } = await supabase
+  const courseQuery = await perfxcelSupabase.from("courses").select("title, brochure_url").eq("id", id).single();
+  if (courseQuery.error || !courseQuery.data) {
+    throw new NotFoundError("Course not found");
+  }
+
+  let brochureToken = null;
+  let brochureExpiresAt = null;
+
+  if (request_brochure && courseQuery.data.brochure_url) {
+    brochureToken = crypto.randomUUID();
+    const expiryDays = await getSetting<number>("brochure_expiry_days", 180);
+    const d = new Date();
+    d.setDate(d.getDate() + expiryDays);
+    brochureExpiresAt = d.toISOString();
+  }
+
+  const { data, error } = await perfxcelSupabase
     .from("course_interests")
-    .insert([{ course_id: id, name, email, phone, company }])
+    .insert([{ course_id: id, name, email, phone, company, brochure_token: brochureToken, brochure_expires_at: brochureExpiresAt }])
     .select()
     .single();
 
@@ -485,8 +523,66 @@ export const registerInterest = async (req: Request, res: Response) => {
     throw new AppError(error.message, 400, ErrorCategory.VALIDATION);
   }
 
+  await logAuditEvent({
+    actorId: "system",
+    actorEmail: email,
+    action: "FORM_SUBMITTED",
+    entityType: "course_interest",
+    entityId: data.id,
+    details: { name, email, course_id: id }
+  });
+
+  if (brochureToken) {
+    const downloadUrl = `${process.env.PERFXCEL_API_URL}${process.env.API_VERSION}/interests/brochure/${brochureToken}`;
+    await sendBrochureEmail(email, name, courseQuery.data.title, downloadUrl);
+
+    await logAuditEvent({
+      actorId: "system",
+      actorEmail: email,
+      action: "EMAIL_SENT",
+      entityType: "course_interest",
+      entityId: data.id,
+      details: { to: email, type: "brochure", regenerated: false }
+    });
+  }
+
   res.status(201).json({
     status: "success",
     data,
   });
+};
+
+export const sendBrochureEmail = async (to: string, name: string, courseTitle: string, downloadUrl: string) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: process.env.PERFXCEL_CERT_SMTP_HOST || "localhost",
+      port: parseInt(process.env.PERFXCEL_CERT_SMTP_PORT || "587", 10),
+      secure: process.env.PERFXCEL_CERT_SMTP_PORT === "465",
+      auth: {
+        user: process.env.PERFXCEL_CERT_SMTP_USER,
+        pass: process.env.PERFXCEL_CERT_SMTP_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: process.env.PERFXCEL_CERT_SMTP_FROM || "Perfxcel <no-reply@perfxcel.com>",
+      to,
+      subject: `Download Brochure: ${courseTitle}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+          <h2 style="color: #0f172a;">Hello ${name},</h2>
+          <p>Thank you for your interest in the course <strong>${courseTitle}</strong>.</p>
+          <p>You can download the course brochure using the secure link below.</p>
+          <div style="margin: 30px 0;">
+            <a href="${downloadUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Download Brochure</a>
+          </div>
+          <p>If the button above does not work, you can copy and paste the following URL into your browser:</p>
+          <p style="word-break: break-all; color: #64748b;">${downloadUrl}</p>
+          <p style="margin-top: 40px;">Best regards,<br/><strong>The PerfXcel Team</strong></p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send brochure email", err);
+  }
 };

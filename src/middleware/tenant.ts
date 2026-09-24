@@ -5,11 +5,7 @@ import {
   AuthorizationError,
 } from "@dotevolve/error-utils";
 
-// A separate client targeting the `public` schema (no perfxcel schema override)
-const portalSupabase = createClient(
-  process.env.SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-);
+import { publicSupabase } from "../db/supabase";
 
 const supabaseConfigured =
   Boolean(process.env.SUPABASE_URL) &&
@@ -31,7 +27,7 @@ export const requirePerfxcelTenant = async (
   }
 
   try {
-    const { data: tenant, error: tenantError } = await portalSupabase
+    const { data: tenant, error: tenantError } = await publicSupabase
       .from("tenants")
       .select("id")
       .eq("slug", "perfxcel")
@@ -41,7 +37,7 @@ export const requirePerfxcelTenant = async (
       return next(new AuthorizationError("PerfXcel tenant not found"));
     }
 
-    const { data: membership, error: membershipError } = await portalSupabase
+    const { data: membership, error: membershipError } = await publicSupabase
       .from("user_tenant_roles")
       .select("tenant_id")
       .eq("user_id", req.user.id)

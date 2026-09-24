@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { supabase } from "../db/supabase";
+import { perfxcelSupabase } from "../db/supabase";
 import { AppError, ErrorCategory } from "@dotevolve/error-utils";
 
 export const verifyCertificate = async (req: Request, res: Response) => {
@@ -59,7 +59,7 @@ export const verifyCertificate = async (req: Request, res: Response) => {
     );
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await perfxcelSupabase
     .from("certificates")
     .select(
       "credential_id, issued_at, pdf_url, enrollments(id, course_interests(name, courses(title)))",
@@ -99,7 +99,7 @@ export const downloadCertificate = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   // Verify the certificate exists first
-  const { data, error } = await supabase
+  const { data, error } = await perfxcelSupabase
     .from("certificates")
     .select("credential_id")
     .eq("credential_id", id)

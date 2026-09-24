@@ -18,6 +18,7 @@ import auditLogsRoutes from "./routes/auditLogs";
 import contactRoutes from "./routes/contact";
 import enquiryRoutes from "./routes/enquiries";
 import trainingPlanRoutes from "./routes/trainingPlan";
+import settingsRoutes from "./routes/settingsRoutes";
 import { globalLimiter } from "./middleware/rateLimiter";
 
 // Initialize Sentry if DSN is provided
@@ -81,6 +82,7 @@ app.use("/api/v1/audit-logs", auditLogsRoutes);
 app.use("/api/v1/contact", contactRoutes);
 app.use("/api/v1/enquiries", enquiryRoutes);
 app.use("/api/v1/training-plan", trainingPlanRoutes);
+app.use("/api/v1/settings", settingsRoutes);
 
 // Sentry Error Handler must be before any other error middleware and after all controllers
 setupSentryErrorHandler(app);

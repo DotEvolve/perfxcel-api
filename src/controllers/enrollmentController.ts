@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { createClient } from "@supabase/supabase-js";
-import { supabase } from "../db/supabase";
+import { perfxcelSupabase } from "../db/supabase";
 import {
   AppError,
   ErrorCategory,
@@ -12,11 +12,12 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import fs from "fs";
 import path from "path";
 import nodemailer from "nodemailer";
+import { logAuditEvent } from "../utils/auditLogger";
 
 export const getEnrollments = async (req: Request, res: Response) => {
   const { status, search, sort, page, limit } = req.query;
 
-  let query = supabase
+  let query = perfxcelSupabase
     .from("enrollments")
     .select("*, course_interests!inner(name, email, courses(title))", {
       count: "exact",
@@ -74,7 +75,7 @@ export const createEnrollment = async (req: Request, res: Response) => {
   }
 
   // Verify interest exists
-  const { data: interest, error: interestError } = await supabase
+  const { data: interest, error: interestError } = await perfxcelSupabase
     .from("course_interests")
     .select("id")
     .eq("id", interest_id)
@@ -85,7 +86,7 @@ export const createEnrollment = async (req: Request, res: Response) => {
   }
 
   // Check for duplicate enrollment
-  const { data: existing, error: existingError } = await supabase
+  const { data: existing, error: existingError } = await perfxcelSupabase
     .from("enrollments")
     .select("id")
     .eq("interest_id", interest_id)
@@ -99,7 +100,7 @@ export const createEnrollment = async (req: Request, res: Response) => {
     throw new ConflictError("Enrollment already exists for this interest");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await perfxcelSupabase
     .from("enrollments")
     .insert({ interest_id })
     .select()
@@ -110,10 +111,19 @@ export const createEnrollment = async (req: Request, res: Response) => {
   }
 
   // Update interest status to enrolled
-  await supabase
+  await perfxcelSupabase
     .from("course_interests")
     .update({ status: "enrolled" })
     .eq("id", interest_id);
+
+  await logAuditEvent({
+    actorId: (req as any).user?.id || "admin",
+    actorEmail: (req as any).user?.email || "admin@example.com",
+    action: "ENROLLMENT_CREATED",
+    entityType: "enrollments",
+    entityId: data.id,
+    details: { interest_id }
+  });
 
   res.status(201).json({
     status: "success",
@@ -130,7 +140,7 @@ export const updateEnrollmentStatus = async (req: Request, res: Response) => {
     throw new AppError("Invalid status value", 400, ErrorCategory.VALIDATION);
   }
 
-  const { data: enrollment, error: updateError } = await supabase
+  const { data: enrollment, error: updateError } = await perfxcelSupabase
     .from("enrollments")
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id)
@@ -147,7 +157,7 @@ export const updateEnrollmentStatus = async (req: Request, res: Response) => {
 
   if (status === "achieved") {
     // Check if certificate exists
-    const { data: certData } = await supabase
+    const { data: certData } = await perfxcelSupabase
       .from("certificates")
       .select("id")
       .eq("enrollment_id", id)
@@ -160,6 +170,15 @@ export const updateEnrollmentStatus = async (req: Request, res: Response) => {
       );
     }
   }
+
+  await logAuditEvent({
+    actorId: (req as any).user?.id || "admin",
+    actorEmail: (req as any).user?.email || "admin@example.com",
+    action: "ENROLLMENT_STATUS_CHANGED",
+    entityType: "enrollments",
+    entityId: id as string,
+    details: { to: status, triggered_certificate: status === "achieved" }
+  });
 
   res.status(200).json({
     status: "success",
@@ -174,7 +193,7 @@ async function generateUniqueCredentialId(): Promise<string> {
     for (let i = 0; i < 8; i++) {
       credentialId += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    const { data } = await supabase
+    const { data } = await perfxcelSupabase
       .from("certificates")
       .select("id")
       .eq("credential_id", credentialId)
@@ -286,10 +305,10 @@ async function generateAndIssueCertificate(enrollment: any, interest: any) {
   }
 
   // Instead of using Supabase's public URL, generate a URL that points to our own proxy route
-  const publicUrl = `${process.env.PERFXCEL_API_URL}/api/v1/verify/${credentialId}/pdf`;
+  const publicUrl = `${process.env.PERFXCEL_API_URL}${process.env.API_VERSION}/verify/${credentialId}/pdf`;
 
   // 5. Insert certificate record
-  const { error: certError } = await supabase.from("certificates").insert({
+  const { error: certError } = await perfxcelSupabase.from("certificates").insert({
     credential_id: credentialId,
     enrollment_id: enrollment.id,
     pdf_url: publicUrl,
@@ -371,7 +390,7 @@ async function sendCertificateEmail(
 export const resendCertificate = async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  const { data: enrollment, error } = await supabase
+  const { data: enrollment, error } = await perfxcelSupabase
     .from("enrollments")
     .select("*, course_interests(name, email, courses(title))")
     .eq("id", id)
@@ -389,7 +408,7 @@ export const resendCertificate = async (req: Request, res: Response) => {
     );
   }
 
-  const { data: certData } = await supabase
+  const { data: certData } = await perfxcelSupabase
     .from("certificates")
     .select("credential_id, pdf_url")
     .eq("enrollment_id", id)
@@ -427,6 +446,15 @@ export const resendCertificate = async (req: Request, res: Response) => {
     pdfBuffer,
     certData.credential_id,
   );
+
+  await logAuditEvent({
+    actorId: (req as any).user?.id || "admin",
+    actorEmail: (req as any).user?.email || "admin@example.com",
+    action: "EMAIL_SENT",
+    entityType: "enrollments",
+    entityId: id as string,
+    details: { to: enrollment.course_interests.email, type: "certificate", regenerated: false }
+  });
 
   res
     .status(200)
