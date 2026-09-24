@@ -11,7 +11,7 @@ import {
   createTrainingPlanManual,
   resendTrainingPlan,
   deleteTrainingPlans,
-  hardDeleteTrainingPlan
+  hardDeleteTrainingPlan,
 } from "../controllers/trainingPlanController";
 import { strictLimiter } from "../middleware/rateLimiter";
 
@@ -42,7 +42,17 @@ router.post(
   asyncHandler(requestTrainingPlan),
 );
 router.get("/download/:token", asyncHandler(downloadTrainingPlan));
-router.post("/:id/resend", requireAuth, requirePerfxcelTenant, asyncHandler(resendTrainingPlan));
-router.post("/:id/hard-delete", requireAuth, requirePerfxcelTenant, asyncHandler(hardDeleteTrainingPlan));
+router.post(
+  "/:id/resend",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(resendTrainingPlan),
+);
+router.post(
+  "/:id/hard-delete",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(hardDeleteTrainingPlan),
+);
 
 export default router;

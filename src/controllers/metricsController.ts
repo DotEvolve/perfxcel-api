@@ -52,7 +52,10 @@ export const getDashboardMetrics = async (
     perfxcelSupabase.from("cities").select("*", count),
     perfxcelSupabase.from("associations").select("*", count),
     perfxcelSupabase.from("delivery_modes").select("*", count),
-    perfxcelSupabase.from("course_interests").select("*", count).eq("status", "new"),
+    perfxcelSupabase
+      .from("course_interests")
+      .select("*", count)
+      .eq("status", "new"),
     perfxcelSupabase
       .from("course_interests")
       .select("*", count)
@@ -66,13 +69,27 @@ export const getDashboardMetrics = async (
       .select("*", count)
       .eq("status", "rejected"),
     perfxcelSupabase.from("course_interests").select("*", count),
-    perfxcelSupabase.from("enrollments").select("*", count).eq("status", "pending"),
-    perfxcelSupabase.from("enrollments").select("*", count).eq("status", "in_progress"),
-    perfxcelSupabase.from("enrollments").select("*", count).eq("status", "achieved"),
-    perfxcelSupabase.from("enrollments").select("*", count).eq("status", "dropped"),
+    perfxcelSupabase
+      .from("enrollments")
+      .select("*", count)
+      .eq("status", "pending"),
+    perfxcelSupabase
+      .from("enrollments")
+      .select("*", count)
+      .eq("status", "in_progress"),
+    perfxcelSupabase
+      .from("enrollments")
+      .select("*", count)
+      .eq("status", "achieved"),
+    perfxcelSupabase
+      .from("enrollments")
+      .select("*", count)
+      .eq("status", "dropped"),
     perfxcelSupabase.from("enrollments").select("*", count),
     perfxcelSupabase.from("certificates").select("*", count),
-    perfxcelSupabase.from("courses").select("id, course_categories(categories(name))"),
+    perfxcelSupabase
+      .from("courses")
+      .select("id, course_categories(categories(name))"),
     perfxcelSupabase.from("course_interests").select("id, courses(title)"),
     perfxcelSupabase
       .from("enrollments")

@@ -250,37 +250,37 @@ export const createCourse = async (req: Request, res: Response) => {
   await Promise.all(
     [
       category_ids?.length > 0 &&
-      perfxcelSupabase.from("course_categories").insert(
-        category_ids.map((id: string) => ({
-          course_id: course.id,
-          category_id: id,
-        })),
-      ),
+        perfxcelSupabase.from("course_categories").insert(
+          category_ids.map((id: string) => ({
+            course_id: course.id,
+            category_id: id,
+          })),
+        ),
       city_ids?.length > 0 &&
-      perfxcelSupabase.from("course_cities").insert(
-        city_ids.map((id: string) => ({
-          course_id: course.id,
-          city_id: id,
-        })),
-      ),
+        perfxcelSupabase.from("course_cities").insert(
+          city_ids.map((id: string) => ({
+            course_id: course.id,
+            city_id: id,
+          })),
+        ),
       association_ids?.length > 0 &&
-      perfxcelSupabase.from("course_associations").insert(
-        association_ids.map((id: string) => ({
-          course_id: course.id,
-          association_id: id,
-        })),
-      ),
+        perfxcelSupabase.from("course_associations").insert(
+          association_ids.map((id: string) => ({
+            course_id: course.id,
+            association_id: id,
+          })),
+        ),
       delivery_mode_ids?.length > 0 &&
-      perfxcelSupabase.from("course_delivery_modes").insert(
-        delivery_mode_ids.map((id: string) => ({
-          course_id: course.id,
-          delivery_mode_id: id,
-        })),
-      ),
+        perfxcelSupabase.from("course_delivery_modes").insert(
+          delivery_mode_ids.map((id: string) => ({
+            course_id: course.id,
+            delivery_mode_id: id,
+          })),
+        ),
       schedules?.length > 0 &&
-      perfxcelSupabase
-        .from("course_schedules")
-        .insert(schedules.map((s: any) => ({ ...s, course_id: course.id }))),
+        perfxcelSupabase
+          .from("course_schedules")
+          .insert(schedules.map((s: any) => ({ ...s, course_id: course.id }))),
     ].filter(Boolean),
   );
 
@@ -341,43 +341,43 @@ export const updateCourse = async (req: Request, res: Response) => {
   await Promise.all(
     [
       category_ids?.length > 0 &&
-      perfxcelSupabase.from("course_categories").insert(
-        category_ids.map((cid: string) => ({
-          course_id: id,
-          category_id: cid,
-        })),
-      ),
-      city_ids?.length > 0 &&
-      perfxcelSupabase
-        .from("course_cities")
-        .insert(
-          city_ids.map((cid: string) => ({ course_id: id, city_id: cid })),
+        perfxcelSupabase.from("course_categories").insert(
+          category_ids.map((cid: string) => ({
+            course_id: id,
+            category_id: cid,
+          })),
         ),
+      city_ids?.length > 0 &&
+        perfxcelSupabase
+          .from("course_cities")
+          .insert(
+            city_ids.map((cid: string) => ({ course_id: id, city_id: cid })),
+          ),
       association_ids?.length > 0 &&
-      perfxcelSupabase.from("course_associations").insert(
-        association_ids.map((cid: string) => ({
-          course_id: id,
-          association_id: cid,
-        })),
-      ),
+        perfxcelSupabase.from("course_associations").insert(
+          association_ids.map((cid: string) => ({
+            course_id: id,
+            association_id: cid,
+          })),
+        ),
       delivery_mode_ids?.length > 0 &&
-      perfxcelSupabase.from("course_delivery_modes").insert(
-        delivery_mode_ids.map((cid: string) => ({
-          course_id: id,
-          delivery_mode_id: cid,
-        })),
-      ),
+        perfxcelSupabase.from("course_delivery_modes").insert(
+          delivery_mode_ids.map((cid: string) => ({
+            course_id: id,
+            delivery_mode_id: cid,
+          })),
+        ),
       schedules?.length > 0 &&
-      perfxcelSupabase.from("course_schedules").insert(
-        schedules.map((s: any) => ({
-          course_id: id,
-          start_date: s.start_date,
-          end_date: s.end_date,
-          location: s.location,
-          method: s.method,
-          status: s.status,
-        })),
-      ),
+        perfxcelSupabase.from("course_schedules").insert(
+          schedules.map((s: any) => ({
+            course_id: id,
+            start_date: s.start_date,
+            end_date: s.end_date,
+            location: s.location,
+            method: s.method,
+            status: s.status,
+          })),
+        ),
     ].filter(Boolean),
   );
 
@@ -445,7 +445,8 @@ export const deleteCourse = async (req: Request, res: Response) => {
 
 export const registerInterest = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, email, phone, company, turnstileToken, request_brochure } = req.body;
+  const { name, email, phone, company, turnstileToken, request_brochure } =
+    req.body;
 
   if (!turnstileToken) {
     throw new AppError(
@@ -497,7 +498,11 @@ export const registerInterest = async (req: Request, res: Response) => {
     );
   }
 
-  const courseQuery = await perfxcelSupabase.from("courses").select("title, brochure_url").eq("id", id).single();
+  const courseQuery = await perfxcelSupabase
+    .from("courses")
+    .select("title, brochure_url")
+    .eq("id", id)
+    .single();
   if (courseQuery.error || !courseQuery.data) {
     throw new NotFoundError("Course not found");
   }
@@ -515,7 +520,17 @@ export const registerInterest = async (req: Request, res: Response) => {
 
   const { data, error } = await perfxcelSupabase
     .from("course_interests")
-    .insert([{ course_id: id, name, email, phone, company, brochure_token: brochureToken, brochure_expires_at: brochureExpiresAt }])
+    .insert([
+      {
+        course_id: id,
+        name,
+        email,
+        phone,
+        company,
+        brochure_token: brochureToken,
+        brochure_expires_at: brochureExpiresAt,
+      },
+    ])
     .select()
     .single();
 
@@ -529,7 +544,7 @@ export const registerInterest = async (req: Request, res: Response) => {
     action: "FORM_SUBMITTED",
     entityType: "course_interest",
     entityId: data.id,
-    details: { name, email, course_id: id }
+    details: { name, email, course_id: id },
   });
 
   if (brochureToken) {
@@ -542,7 +557,7 @@ export const registerInterest = async (req: Request, res: Response) => {
       action: "EMAIL_SENT",
       entityType: "course_interest",
       entityId: data.id,
-      details: { to: email, type: "brochure", regenerated: false }
+      details: { to: email, type: "brochure", regenerated: false },
     });
   }
 
@@ -552,7 +567,12 @@ export const registerInterest = async (req: Request, res: Response) => {
   });
 };
 
-export const sendBrochureEmail = async (to: string, name: string, courseTitle: string, downloadUrl: string) => {
+export const sendBrochureEmail = async (
+  to: string,
+  name: string,
+  courseTitle: string,
+  downloadUrl: string,
+) => {
   try {
     const transporter = nodemailer.createTransport({
       host: process.env.PERFXCEL_CERT_SMTP_HOST || "localhost",
@@ -565,7 +585,9 @@ export const sendBrochureEmail = async (to: string, name: string, courseTitle: s
     });
 
     await transporter.sendMail({
-      from: process.env.PERFXCEL_CERT_SMTP_FROM || "Perfxcel <no-reply@perfxcel.com>",
+      from:
+        process.env.PERFXCEL_CERT_SMTP_FROM ||
+        "Perfxcel <no-reply@perfxcel.com>",
       to,
       subject: `Download Brochure: ${courseTitle}`,
       html: `

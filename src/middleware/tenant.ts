@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthenticationError, AuthorizationError } from "@dotevolve/error-utils";
+import {
+  AuthenticationError,
+  AuthorizationError,
+} from "@dotevolve/error-utils";
 import { publicSupabase } from "../db/supabase";
 
 const supabaseConfigured =

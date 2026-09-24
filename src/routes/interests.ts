@@ -11,7 +11,7 @@ import {
   createInterestManual,
   resendBrochure,
   deleteInterests,
-  hardDeleteInterest
+  hardDeleteInterest,
 } from "../controllers/interestController";
 
 const router = Router();
@@ -19,8 +19,18 @@ const router = Router();
 router.get("/brochure/:token", asyncHandler(downloadBrochure));
 
 router.get("/", requireAuth, requirePerfxcelTenant, asyncHandler(getInterests));
-router.post("/", requireAuth, requirePerfxcelTenant, asyncHandler(createInterestManual));
-router.delete("/", requireAuth, requirePerfxcelTenant, asyncHandler(deleteInterests));
+router.post(
+  "/",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(createInterestManual),
+);
+router.delete(
+  "/",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(deleteInterests),
+);
 
 router.patch(
   "/:id",
@@ -30,7 +40,17 @@ router.patch(
   asyncHandler(updateInterestStatus),
 );
 
-router.post("/:id/resend-brochure", requireAuth, requirePerfxcelTenant, asyncHandler(resendBrochure));
-router.post("/:id/hard-delete", requireAuth, requirePerfxcelTenant, asyncHandler(hardDeleteInterest));
+router.post(
+  "/:id/resend-brochure",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(resendBrochure),
+);
+router.post(
+  "/:id/hard-delete",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(hardDeleteInterest),
+);
 
 export default router;

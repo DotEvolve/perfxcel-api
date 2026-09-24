@@ -122,7 +122,7 @@ export const createEnrollment = async (req: Request, res: Response) => {
     action: "ENROLLMENT_CREATED",
     entityType: "enrollments",
     entityId: data.id,
-    details: { interest_id }
+    details: { interest_id },
   });
 
   res.status(201).json({
@@ -177,7 +177,7 @@ export const updateEnrollmentStatus = async (req: Request, res: Response) => {
     action: "ENROLLMENT_STATUS_CHANGED",
     entityType: "enrollments",
     entityId: id as string,
-    details: { to: status, triggered_certificate: status === "achieved" }
+    details: { to: status, triggered_certificate: status === "achieved" },
   });
 
   res.status(200).json({
@@ -308,11 +308,13 @@ async function generateAndIssueCertificate(enrollment: any, interest: any) {
   const publicUrl = `${process.env.PERFXCEL_API_URL}${process.env.API_VERSION}/verify/${credentialId}/pdf`;
 
   // 5. Insert certificate record
-  const { error: certError } = await perfxcelSupabase.from("certificates").insert({
-    credential_id: credentialId,
-    enrollment_id: enrollment.id,
-    pdf_url: publicUrl,
-  });
+  const { error: certError } = await perfxcelSupabase
+    .from("certificates")
+    .insert({
+      credential_id: credentialId,
+      enrollment_id: enrollment.id,
+      pdf_url: publicUrl,
+    });
 
   if (certError) {
     throw new AppError(
@@ -453,7 +455,11 @@ export const resendCertificate = async (req: Request, res: Response) => {
     action: "EMAIL_SENT",
     entityType: "enrollments",
     entityId: id as string,
-    details: { to: enrollment.course_interests.email, type: "certificate", regenerated: false }
+    details: {
+      to: enrollment.course_interests.email,
+      type: "certificate",
+      regenerated: false,
+    },
   });
 
   res

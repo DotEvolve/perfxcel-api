@@ -27,7 +27,9 @@ export const getSettings = async (req: Request, res: Response) => {
 export const updateSettings = async (req: Request, res: Response) => {
   const parsed = updateSettingsSchema.parse(req.body);
 
-  const updates = Object.entries(parsed).filter(([_, val]) => val !== undefined);
+  const updates = Object.entries(parsed).filter(
+    ([_, val]) => val !== undefined,
+  );
   if (updates.length === 0) {
     res.status(400).json({
       status: "fail",
@@ -39,10 +41,18 @@ export const updateSettings = async (req: Request, res: Response) => {
   for (const [key, val] of updates) {
     const { error } = await perfxcelSupabase
       .from("settings")
-      .upsert({ setting_key: key, setting_value: val, updated_at: new Date().toISOString() });
+      .upsert({
+        setting_key: key,
+        setting_value: val,
+        updated_at: new Date().toISOString(),
+      });
 
     if (error) {
-      throw new AppError(`Failed to update ${key}: ${error.message}`, 500, ErrorCategory.SYSTEM);
+      throw new AppError(
+        `Failed to update ${key}: ${error.message}`,
+        500,
+        ErrorCategory.SYSTEM,
+      );
     }
   }
 

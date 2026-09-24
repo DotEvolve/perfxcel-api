@@ -6,7 +6,12 @@ import { getSettings, updateSettings } from "../controllers/settingsController";
 
 const router = Router();
 
-router.get("/",  requireAuth, requirePerfxcelTenant, asyncHandler(getSettings));
-router.put("/",  requireAuth, requirePerfxcelTenant, asyncHandler(updateSettings));
+router.get("/", requireAuth, requirePerfxcelTenant, asyncHandler(getSettings));
+router.put(
+  "/",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(updateSettings),
+);
 
 export default router;

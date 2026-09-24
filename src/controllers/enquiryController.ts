@@ -137,7 +137,7 @@ export const submitContact = async (req: Request, res: Response) => {
     action: "FORM_SUBMITTED",
     entityType: "enquiries",
     entityId: data.id,
-    details: { name, email, course_id }
+    details: { name, email, course_id },
   });
 
   // Send email to admin
