@@ -21,11 +21,14 @@ export const uploadTrainingPlan = async (req: Request, res: Response) => {
 export const downloadTrainingPlan = async (_req: Request, res: Response) => {
   const { data, error } = await perfxcelSupabase.storage
     .from("assets")
-    .createSignedUrl("training_plan.pdf", 60);
+    .download("training_plan.pdf");
 
-  if (error || !data?.signedUrl) throw new NotFoundError("Training plan not found");
+  if (error || !data) throw new NotFoundError("Training plan not found");
 
-  res.status(200).json({ status: "success", data: { signedUrl: data.signedUrl } });
+  const arrayBuffer = await data.arrayBuffer();
+  res.setHeader("Content-Type", data.type || "application/pdf");
+  res.setHeader("Content-Disposition", 'attachment; filename="training_plan.pdf"');
+  res.status(200).send(Buffer.from(arrayBuffer));
 };
 
 export const uploadCourseBrochure = async (req: Request, res: Response) => {

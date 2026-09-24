@@ -81,7 +81,8 @@ export const requestTrainingPlan = async (req: Request, res: Response) => {
 
   // The generated token is data.token
   // Usually API URL is the base for the backend, e.g. https://api-dev.perfxcel.com/api/v1
-  const downloadLink = `${process.env.PERFXCEL_API_URL}${process.env.API_VERSION}/training-plan/download/${data.token}`;
+  const frontendUrl = process.env.PERFXCEL_FRONTEND_URL || (process.env.NODE_ENV === "production" ? "https://perfxcel.com" : "https://dev.perfxcel.com");
+  const downloadLink = `${frontendUrl}/training-plan/${data.token}`;
 
   // Send email to user
   try {
@@ -273,7 +274,8 @@ export const createTrainingPlanManual = async (req: Request, res: Response) => {
     details: { name, email, company, manual: true },
   });
 
-  const downloadLink = `${process.env.PERFXCEL_API_URL}${process.env.API_VERSION}/training-plan/download/${data.token}`;
+  const frontendUrl = process.env.PERFXCEL_FRONTEND_URL || (process.env.NODE_ENV === "production" ? "https://perfxcel.com" : "https://dev.perfxcel.com");
+  const downloadLink = `${frontendUrl}/training-plan/${data.token}`;
   // Send email (same logic as requestTrainingPlan, omitted full copy block for brevity here but it would go here)
   try {
     const transporter = nodemailer.createTransport({
@@ -352,7 +354,8 @@ export const resendTrainingPlan = async (req: Request, res: Response) => {
       );
   }
 
-  const downloadLink = `${process.env.PERFXCEL_API_URL}${process.env.API_VERSION}/training-plan/download/${token}`;
+  const frontendUrl = process.env.PERFXCEL_FRONTEND_URL || (process.env.NODE_ENV === "production" ? "https://perfxcel.com" : "https://dev.perfxcel.com");
+  const downloadLink = `${frontendUrl}/training-plan/${token}`;
 
   try {
     const transporter = nodemailer.createTransport({
