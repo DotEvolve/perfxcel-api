@@ -6,6 +6,7 @@ jest.mock("../db/supabase", () => {
     from: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
+    neq: jest.fn().mockReturnThis(),
     in: jest.fn().mockReturnThis(),
     ilike: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
