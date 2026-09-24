@@ -58,6 +58,7 @@ export const updateSettings = async (req: Request, res: Response) => {
 
   // Audit log
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "update_settings",

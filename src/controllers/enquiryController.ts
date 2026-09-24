@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
 import { logAuditEvent } from "../utils/auditLogger";
 
 export const getEnquiries = async (req: Request, res: Response) => {
-  const { status, search, page, limit } = req.query;
+  const { status, search, page, limit, date_from, date_to } = req.query;
 
   let query = perfxcelSupabase
     .from("enquiries")
@@ -17,6 +17,14 @@ export const getEnquiries = async (req: Request, res: Response) => {
 
   if (search) {
     query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+
+  if (date_from) {
+    query = query.gte("created_at", String(date_from));
+  }
+
+  if (date_to) {
+    query = query.lte("created_at", String(date_to));
   }
 
   query = query.order("created_at", { ascending: false });
@@ -132,6 +140,7 @@ export const submitContact = async (req: Request, res: Response) => {
   }
 
   await logAuditEvent({
+    actorType: "user",
     actorId: "system",
     actorEmail: email,
     action: "FORM_SUBMITTED",

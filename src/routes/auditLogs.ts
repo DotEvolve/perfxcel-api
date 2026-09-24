@@ -31,12 +31,13 @@ router.post(
         body: JSON.stringify(req.body),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        console.error("[auditLogs proxy] Portal returned", response.status, data);
         return res.status(response.status).json(data);
       }
 
+      const data = await response.json();
       res.status(200).json(data);
     } catch (error) {
       throw new AppError(
@@ -74,12 +75,13 @@ router.get(
         },
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        console.error("[auditLogs proxy] Portal returned", response.status, data);
         return res.status(response.status).json(data);
       }
 
+      const data = await response.json();
       res.status(200).json(data);
     } catch (error) {
       throw new AppError(

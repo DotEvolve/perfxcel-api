@@ -6,7 +6,7 @@ import { getSetting } from "../utils/settingsReader";
 import { sendBrochureEmail } from "./courseController";
 
 export const getInterests = async (req: Request, res: Response) => {
-  const { status, course_id, search, sort, page, limit } = req.query;
+  const { status, course_id, search, sort, page, limit, date_from, date_to } = req.query;
 
   let query = perfxcelSupabase
     .from("course_interests")
@@ -31,6 +31,14 @@ export const getInterests = async (req: Request, res: Response) => {
     query = query.or(
       `name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%,company.ilike.%${search}%`,
     );
+  }
+
+  if (date_from) {
+    query = query.gte("created_at", String(date_from));
+  }
+
+  if (date_to) {
+    query = query.lte("created_at", String(date_to));
   }
 
   if (sort) {
@@ -82,6 +90,7 @@ export const updateInterestStatus = async (req: Request, res: Response) => {
   }
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "INTEREST_STATUS_CHANGED",
@@ -191,6 +200,7 @@ export const createInterestManual = async (req: Request, res: Response) => {
   if (error) throw new AppError(error.message, 400, ErrorCategory.VALIDATION);
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "FORM_SUBMITTED",
@@ -203,6 +213,7 @@ export const createInterestManual = async (req: Request, res: Response) => {
     const downloadUrl = `${process.env.PERFXCEL_API_URL}${process.env.API_VERSION}/interests/brochure/${brochureToken}`;
     await sendBrochureEmail(email, name, courseQuery.data.title, downloadUrl);
     await logAuditEvent({
+    actorType: "user",
       actorId: (req as any).user?.id || "admin",
       actorEmail: (req as any).user?.email || "admin@example.com",
       action: "EMAIL_SENT",
@@ -265,6 +276,7 @@ export const resendBrochure = async (req: Request, res: Response) => {
   );
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "EMAIL_SENT",
@@ -288,6 +300,7 @@ export const deleteInterests = async (req: Request, res: Response) => {
   if (error) throw new AppError(error.message, 500, ErrorCategory.SYSTEM);
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "RECORD_DELETED",
@@ -330,6 +343,7 @@ export const hardDeleteInterest = async (req: Request, res: Response) => {
     throw new AppError(updateError.message, 500, ErrorCategory.SYSTEM);
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "GDPR_ERASURE",

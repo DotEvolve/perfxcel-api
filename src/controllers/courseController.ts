@@ -287,6 +287,7 @@ export const createCourse = async (req: Request, res: Response) => {
   const full = await fetchCourseWithRelations(course.id);
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "COURSE_CREATED",
@@ -385,6 +386,7 @@ export const updateCourse = async (req: Request, res: Response) => {
 
   const changed_fields = Object.keys(coreFields);
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "COURSE_UPDATED",
@@ -539,6 +541,7 @@ export const registerInterest = async (req: Request, res: Response) => {
   }
 
   await logAuditEvent({
+    actorType: "user",
     actorId: "system",
     actorEmail: email,
     action: "FORM_SUBMITTED",
@@ -552,6 +555,7 @@ export const registerInterest = async (req: Request, res: Response) => {
     await sendBrochureEmail(email, name, courseQuery.data.title, downloadUrl);
 
     await logAuditEvent({
+    actorType: "user",
       actorId: "system",
       actorEmail: email,
       action: "EMAIL_SENT",

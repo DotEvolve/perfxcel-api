@@ -120,6 +120,7 @@ export const requestTrainingPlan = async (req: Request, res: Response) => {
   }
 
   await logAuditEvent({
+    actorType: "user",
     actorId: "system",
     actorEmail: email,
     action: "FORM_SUBMITTED",
@@ -191,7 +192,7 @@ export const downloadTrainingPlan = async (req: Request, res: Response) => {
 };
 
 export const getTrainingPlanRequests = async (req: Request, res: Response) => {
-  const { search, page, limit } = req.query;
+  const { search, page, limit, date_from, date_to } = req.query;
 
   let query = perfxcelSupabase
     .from("training_plan_requests")
@@ -204,6 +205,14 @@ export const getTrainingPlanRequests = async (req: Request, res: Response) => {
 
   if (search) {
     query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+
+  if (date_from) {
+    query = query.gte("created_at", String(date_from));
+  }
+
+  if (date_to) {
+    query = query.lte("created_at", String(date_to));
   }
 
   query = query.order("created_at", { ascending: false });
@@ -255,6 +264,7 @@ export const createTrainingPlanManual = async (req: Request, res: Response) => {
   if (error) throw new AppError(error.message, 400, ErrorCategory.VALIDATION);
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "FORM_SUBMITTED",
@@ -296,6 +306,7 @@ export const createTrainingPlanManual = async (req: Request, res: Response) => {
   }
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "EMAIL_SENT",
@@ -374,6 +385,7 @@ export const resendTrainingPlan = async (req: Request, res: Response) => {
   }
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "EMAIL_SENT",
@@ -397,6 +409,7 @@ export const deleteTrainingPlans = async (req: Request, res: Response) => {
   if (error) throw new AppError(error.message, 500, ErrorCategory.SYSTEM);
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "RECORD_DELETED",
@@ -440,6 +453,7 @@ export const hardDeleteTrainingPlan = async (req: Request, res: Response) => {
     throw new AppError(updateError.message, 500, ErrorCategory.SYSTEM);
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "GDPR_ERASURE",

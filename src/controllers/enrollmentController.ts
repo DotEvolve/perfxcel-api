@@ -117,6 +117,7 @@ export const createEnrollment = async (req: Request, res: Response) => {
     .eq("id", interest_id);
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "ENROLLMENT_CREATED",
@@ -172,6 +173,7 @@ export const updateEnrollmentStatus = async (req: Request, res: Response) => {
   }
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "ENROLLMENT_STATUS_CHANGED",
@@ -450,6 +452,7 @@ export const resendCertificate = async (req: Request, res: Response) => {
   );
 
   await logAuditEvent({
+    actorType: "user",
     actorId: (req as any).user?.id || "admin",
     actorEmail: (req as any).user?.email || "admin@example.com",
     action: "EMAIL_SENT",

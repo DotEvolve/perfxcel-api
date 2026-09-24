@@ -82,6 +82,7 @@ export const courseInputSchema = z
     slug: z.string().trim().optional(),
     short_code: z.string().trim().min(1, "Short code is required"),
     description: z.string().optional(),
+    overview: z.string().trim().max(5000).optional().nullable(),
     cost: z.number().min(0).optional(),
     status: z.enum(["active", "archived"]).optional(),
     is_public: z.boolean().optional(),

@@ -5,6 +5,7 @@ interface AuditEventParams {
   tenantId?: string;
   actorId: string; // req.user?.id or "system" for public routes
   actorEmail?: string; // req.user?.email or submitter's email
+  actorType: "user" | "service";
   action: string;
   entityType: string;
   entityId?: string;
@@ -38,7 +39,7 @@ export async function logAuditEvent(params: AuditEventParams): Promise<void> {
       return;
     }
 
-    await fetch(`${portalUrl}/api/v1/audit/logs/ingest`, {
+    await fetch(`${portalUrl}/api/v1/audit-logs`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-tenant-id": tenantId },
       body: JSON.stringify({
@@ -48,6 +49,7 @@ export async function logAuditEvent(params: AuditEventParams): Promise<void> {
             entityType: params.entityType,
             entityId: params.entityId,
             actorId: params.actorId,
+            actorType: params.actorType,
             actorEmail: params.actorEmail,
             tenantId: tenantId,
             details: params.details ?? {},
