@@ -13,7 +13,7 @@ jest.mock("../db/supabase", () => {
     range: jest.fn().mockReturnThis(),
     then: jest.fn((resolve) => resolve({ data: [], count: 0, error: null })),
   };
-  return { supabase: mockChain };
+  return { perfxcelSupabase: mockChain };
 });
 
 describe("API Routes", () => {

@@ -4,7 +4,7 @@ import { AuthenticationError } from "@dotevolve/error-utils";
 // Mock supabase before importing the middleware so supabaseConfigured
 // is evaluated against the mocked module at load time.
 jest.mock("../../db/supabase", () => ({
-  supabase: {
+  perfxcelSupabase: {
     auth: {
       getUser: jest.fn(),
     },
@@ -16,7 +16,7 @@ process.env.SUPABASE_URL = "http://localhost:8000";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
 
 // Import after mocking and setting env vars
-import { supabase } from "../../db/supabase";
+import { perfxcelSupabase } from "../../db/supabase";
 import { requireAuth } from "../../middleware/auth";
 
 // ---------------------------------------------------------------------------
@@ -34,7 +34,7 @@ const mockRes = {} as Response;
 const mockNext = jest.fn() as unknown as NextFunction;
 
 // Cast to access Jest mock methods
-const getUser = supabase.auth.getUser as jest.Mock;
+const getUser = perfxcelSupabase.auth.getUser as jest.Mock;
 
 // ---------------------------------------------------------------------------
 // Tests
