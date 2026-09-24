@@ -5,13 +5,12 @@ import { requirePerfxcelTenant } from "../middleware/tenant";
 
 const router = Router();
 
-const portalUrl = process.env.PORTAL_API_URL;
-
 router.post(
   "/",
   requireAuth,
   requirePerfxcelTenant,
   asyncHandler(async (req: Request, res: Response) => {
+    const portalUrl = process.env.PORTAL_API_URL;
     if (!portalUrl) {
       throw new AppError(
         "Audit log service is not configured",
@@ -54,6 +53,7 @@ router.get(
   requireAuth,
   requirePerfxcelTenant,
   asyncHandler(async (req: Request, res: Response) => {
+    const portalUrl = process.env.PORTAL_API_URL;
     if (!portalUrl) {
       throw new AppError(
         "Audit log service is not configured",

@@ -41,7 +41,11 @@ export async function logAuditEvent(params: AuditEventParams): Promise<void> {
 
     await fetch(`${portalUrl}/api/v1/audit-logs`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-tenant-id": tenantId },
+      headers: {
+        "Content-Type": "application/json",
+        "x-tenant-id": tenantId,
+        "x-service-secret": process.env.SERVICE_SECRET || "",
+      },
       body: JSON.stringify({
         events: [
           {
