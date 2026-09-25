@@ -51,7 +51,8 @@ export const uploadCourseBrochure = async (req: Request, res: Response) => {
     .from("course-brochures")
     .getPublicUrl(filename);
 
-  const url = `${process.env.PERFXCEL_API_URL}/api/v1/interests/brochure/by-course/${short_code}`;
+  const frontendUrl = process.env.PERFXCEL_FRONTEND_URL || (process.env.NODE_ENV === "production" ? "https://perfxcel.com" : "https://dev.perfxcel.com");
+  const url = `${frontendUrl}${process.env.API_VERSION || "/api/v1"}/interests/brochure/by-course/${short_code}`;
 
-  res.status(200).json({ status: "success", data: { url: urlData.publicUrl, filename } });
+  res.status(200).json({ status: "success", data: { url, filename } });
 };
