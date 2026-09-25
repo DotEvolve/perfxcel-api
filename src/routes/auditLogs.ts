@@ -1,0 +1,96 @@
+import { Router, Request, Response } from "express";
+import { asyncHandler, AppError, ErrorCategory } from "@dotevolve/error-utils";
+import { requireAuth } from "../middleware/auth";
+import { requirePerfxcelTenant } from "../middleware/tenant";
+
+const router = Router();
+
+router.post(
+  "/",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(async (req: Request, res: Response) => {
+    const portalUrl = process.env.PORTAL_API_URL;
+    if (!portalUrl) {
+      throw new AppError(
+        "Audit log service is not configured",
+        502,
+        ErrorCategory.SYSTEM,
+      );
+    }
+
+    try {
+      const response = await fetch(`${portalUrl}/api/v1/audit-logs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: req.headers.authorization || "",
+          "x-tenant-id": req.tenantId || "",
+        },
+        body: JSON.stringify(req.body),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        console.error("[auditLogs proxy] Portal returned", response.status, data);
+        return res.status(response.status).json(data);
+      }
+
+      const data = await response.json();
+      res.status(200).json(data);
+    } catch (error) {
+      throw new AppError(
+        "Failed to communicate with audit log service",
+        502,
+        ErrorCategory.SYSTEM,
+      );
+    }
+  }),
+);
+
+router.get(
+  "/",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(async (req: Request, res: Response) => {
+    const portalUrl = process.env.PORTAL_API_URL;
+    if (!portalUrl) {
+      throw new AppError(
+        "Audit log service is not configured",
+        502,
+        ErrorCategory.SYSTEM,
+      );
+    }
+
+    try {
+      const queryString = new URLSearchParams(req.query as any).toString();
+      const url = `${portalUrl}/api/v1/audit-logs${queryString ? `?${queryString}` : ""}`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: req.headers.authorization || "",
+          "x-tenant-id": req.tenantId || "",
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        console.error("[auditLogs proxy] Portal returned", response.status, data);
+        return res.status(response.status).json(data);
+      }
+
+      const data = await response.json();
+      res.status(200).json(data);
+    } catch (error) {
+      throw new AppError(
+        "Failed to communicate with audit log service",
+        502,
+        ErrorCategory.SYSTEM,
+      );
+    }
+  }),
+);
+
+export default router;
