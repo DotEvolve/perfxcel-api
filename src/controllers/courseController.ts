@@ -90,10 +90,10 @@ const fetchCourseWithRelations = async (identifier: string) => {
 
 export const getCourses = async (req: Request, res: Response) => {
   const {
-    category_ids,
-    city_ids,
-    association_ids,
-    delivery_mode_ids,
+    category_id,
+    city_id,
+    association_id,
+    delivery_mode_id,
     search,
     sort,
     page,
@@ -104,10 +104,10 @@ export const getCourses = async (req: Request, res: Response) => {
     is_published,
   } = req.query;
 
-  const innerCat = category_ids ? "!inner" : "";
-  const innerCity = city_ids ? "!inner" : "";
-  const innerAssoc = association_ids ? "!inner" : "";
-  const innerDelivery = delivery_mode_ids ? "!inner" : "";
+  const innerCat = category_id ? "!inner" : "";
+  const innerCity = city_id ? "!inner" : "";
+  const innerAssoc = association_id ? "!inner" : "";
+  const innerDelivery = delivery_mode_id ? "!inner" : "";
 
   let query = perfxcelSupabase.from("courses").select(
     `
@@ -121,24 +121,24 @@ export const getCourses = async (req: Request, res: Response) => {
     { count: "exact" },
   );
 
-  if (category_ids) {
-    const ids = Array.isArray(category_ids) ? category_ids : [category_ids];
+  if (category_id) {
+    const ids = Array.isArray(category_id) ? category_id : [category_id];
     query = query.in("course_categories.category_id", ids);
   }
-  if (city_ids) {
-    const ids = Array.isArray(city_ids) ? city_ids : [city_ids];
+  if (city_id) {
+    const ids = Array.isArray(city_id) ? city_id : [city_id];
     query = query.in("course_cities.city_id", ids);
   }
-  if (association_ids) {
-    const ids = Array.isArray(association_ids)
-      ? association_ids
-      : [association_ids];
+  if (association_id) {
+    const ids = Array.isArray(association_id)
+      ? association_id
+      : [association_id];
     query = query.in("course_associations.association_id", ids);
   }
-  if (delivery_mode_ids) {
-    const ids = Array.isArray(delivery_mode_ids)
-      ? delivery_mode_ids
-      : [delivery_mode_ids];
+  if (delivery_mode_id) {
+    const ids = Array.isArray(delivery_mode_id)
+      ? delivery_mode_id
+      : [delivery_mode_id];
     query = query.in("course_delivery_modes.delivery_mode_id", ids);
   }
 
