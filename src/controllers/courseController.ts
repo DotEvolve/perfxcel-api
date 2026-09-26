@@ -555,7 +555,7 @@ export const registerInterest = async (req: Request, res: Response) => {
     await sendBrochureEmail(email, name, courseQuery.data.title, downloadUrl);
 
     await logAuditEvent({
-    actorType: "user",
+      actorType: "user",
       actorId: "system",
       actorEmail: email,
       action: "EMAIL_SENT",

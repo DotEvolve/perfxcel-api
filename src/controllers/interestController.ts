@@ -6,7 +6,8 @@ import { getSetting } from "../utils/settingsReader";
 import { sendBrochureEmail } from "./courseController";
 
 export const getInterests = async (req: Request, res: Response) => {
-  const { status, course_id, search, sort, page, limit, date_from, date_to } = req.query;
+  const { status, course_id, search, sort, page, limit, date_from, date_to } =
+    req.query;
 
   let query = perfxcelSupabase
     .from("course_interests")
@@ -213,7 +214,7 @@ export const createInterestManual = async (req: Request, res: Response) => {
     const downloadUrl = `${process.env.PERFXCEL_API_URL}${process.env.API_VERSION}/interests/brochure/${brochureToken}`;
     await sendBrochureEmail(email, name, courseQuery.data.title, downloadUrl);
     await logAuditEvent({
-    actorType: "user",
+      actorType: "user",
       actorId: (req as any).user?.id || "admin",
       actorEmail: (req as any).user?.email || "admin@example.com",
       action: "EMAIL_SENT",

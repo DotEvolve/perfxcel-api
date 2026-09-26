@@ -32,7 +32,11 @@ router.post(
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        console.error("[auditLogs proxy] Portal returned", response.status, data);
+        console.error(
+          "[auditLogs proxy] Portal returned",
+          response.status,
+          data,
+        );
         return res.status(response.status).json(data);
       }
 
@@ -77,7 +81,11 @@ router.get(
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        console.error("[auditLogs proxy] Portal returned", response.status, data);
+        console.error(
+          "[auditLogs proxy] Portal returned",
+          response.status,
+          data,
+        );
         return res.status(response.status).json(data);
       }
 

@@ -1,4 +1,5 @@
 # Requirements
+
 ## Perfxcel Phase 2 — File Uploads, Audit Logs, Filters & Course Overview
 
 **Scope:** `perfxcel-api` · `perfxcel-admin` · `perfxcel-app` · `dot-portal-api`
@@ -8,12 +9,13 @@
 ## 1. File Uploads — Training Plan & Course Brochure (Bug Fix)
 
 ### Actual root cause
+
 The `supabase` client in `perfxcel-admin` is created with the **anon key** (`VITE_SUPABASE_ANON_KEY`). Storage RLS policies gate writes by role:
 
-| Bucket | INSERT policy | Allows |
-|---|---|---|
-| `assets` | `service_role` only | Anon client always 403 |
-| `course-images` | `authenticated` role | Works only if JWT is in scope |
+| Bucket             | INSERT policy        | Allows                        |
+| ------------------ | -------------------- | ----------------------------- |
+| `assets`           | `service_role` only  | Anon client always 403        |
+| `course-images`    | `authenticated` role | Works only if JWT is in scope |
 | `course-brochures` | `authenticated` role | Works only if JWT is in scope |
 
 `Settings.tsx` uploads to `assets` — an anon client can never write there regardless of whether the admin is logged in, because the anon client does not carry the user's session JWT in storage requests unless `setSession` is called explicitly. The Supabase JS SDK wraps the resulting 403 as "Failed to fetch".
@@ -23,6 +25,7 @@ The `supabase` client in `perfxcel-admin` is created with the **anon key** (`VIT
 Additionally, `CourseForm.tsx` uses `import("../lib/supabase")` as a dynamic import inside `handleSubmit` — the singleton is loaded lazily after the form is submitted, which is unnecessary but not the primary cause of failure.
 
 ### Solution
+
 The Supabase anon client is the wrong tool for admin storage writes. Two options:
 
 **Option A (minimal):** Call `supabase.auth.setSession(session)` before any storage call so the client carries the user JWT, then add an `authenticated` INSERT policy on the `assets` bucket.
@@ -32,11 +35,13 @@ The Supabase anon client is the wrong tool for admin storage writes. Two options
 **Decision: Option B for PDFs, fix the bucket name for brochure.** Course images already work and don't need changing. Training plan PDF and course brochure PDF go through the API.
 
 ### User stories
+
 - As an admin, I can upload a training plan PDF in the Settings page without a "Failed to fetch" error.
 - As an admin, I can upload a course brochure PDF in the Course Editor without a "Failed to fetch" error.
 - As an admin, the uploaded brochure is stored in the correct `course-brochures` bucket, not `course-images`.
 
 ### Acceptance criteria
+
 - AC1: `POST /api/v1/upload/training-plan` (protected, `requireAuth` + `requirePerfxcelTenant`) accepts `multipart/form-data` with field `file` (PDF, max 20MB). Writes to the `assets` bucket as `training_plan.pdf` with `upsert: true` using the service-role Supabase client. Returns `{ status: "success", data: { url: string } }`.
 - AC2: `POST /api/v1/upload/course-brochure` (protected) accepts `multipart/form-data` with fields `file` (PDF, max 20MB) and `short_code` (string). Writes to the `course-brochures` bucket as `${short_code}.pdf`. Returns `{ status: "success", data: { url: string } }`.
 - AC3: Both endpoints validate MIME type and size before writing to storage. Wrong type → 400; file too large → 413.
@@ -65,16 +70,20 @@ Even if the path were correct, the portal's Zod schema requires `actorType: z.en
 The admin frontend reads logs through `perfxcel-api/src/routes/auditLogs.ts`, which forwards the user's JWT to dot-portal-api. The portal's `authenticate` middleware validates the JWT and reads `activeTenantId` from `app_metadata`. Since the access control refactor, the admin user's token may not have `activeTenantId` correctly populated for the portal's tenant model, causing `resolveTenant` to fail silently. The proxy swallows the 4xx response and returns a generic 502 to the frontend.
 
 ### Solution
+
 Fix all three bugs independently:
+
 - A: Correct the URL in `auditLogger.ts`.
 - B: Add `actorType` to every `logAuditEvent` call and to the `AuditEventParams` interface.
 - C: The proxy should forward `x-tenant-id` and use a service-level mechanism so the portal doesn't need to validate the user's JWT a second time. The simplest fix is for the proxy to pass the `tenantId` header and rely on the portal accepting requests with `x-tenant-id` from trusted internal services.
 
 ### User stories
+
 - As an admin viewing Audit Logs, I see events since the fix was deployed.
 - As a developer, audit log write failures surface as warnings in the Sentry trail rather than disappearing silently.
 
 ### Acceptance criteria
+
 - AC1: `auditLogger.ts` — URL corrected to `${portalUrl}/api/v1/audit-logs`.
 - AC2: `AuditEventParams` interface gains `actorType: "user" | "service"` (required field).
 - AC3: All `logAuditEvent()` calls in controllers are updated: public-route calls (no `req.user`) use `actorType: "service"`; admin-route calls use `actorType: "user"`.
@@ -87,16 +96,20 @@ Fix all three bugs independently:
 ## 3. Course Overview Field (New Feature)
 
 ### What
+
 A new `overview` TEXT column on `perfxcel.courses` for a freeform narrative overview of the course, separate from the structured `description`, `objectives`, and `target_audience` fields. Rendered on the public course detail page above the objectives section.
 
 ### Decision — plain textarea, no WYSIWYG
+
 No new npm packages. `overview` is a `<textarea>` in the admin and rendered as pre-wrapped text on the public site. The Smart Paste parser for `course_outline` is a separate ticket.
 
 ### User stories
+
 - As an admin, I can write a course overview in the Course Editor and save it.
 - As a visitor, I see the overview on the course detail page.
 
 ### Acceptance criteria
+
 - AC1: `ALTER TABLE perfxcel.courses ADD COLUMN IF NOT EXISTS overview TEXT DEFAULT NULL` added to master migration.
 - AC2: `courseInputSchema` gains `overview: z.string().trim().max(5000).optional().nullable()`.
 - AC3: `GET /api/v1/courses/:id` and `GET /api/v1/courses` include `overview` in the response (via `*` select — no query change needed).
@@ -112,13 +125,16 @@ No new npm packages. `overview` is a `<textarea>` in the admin and rendered as p
 ## 4. Consistent Search & Filters Across Admin Data Pages (New Feature)
 
 ### What
+
 The four data pages (Enquiries, Interests, Enrollments, Training Plans) each have ad-hoc filter bars. Enquiries uses a form-submit search with no status dropdown. Training Plans uses form-submit search with no date filter. None have a date range filter. Build a shared `FilterBar` component and apply it consistently.
 
 ### User stories
+
 - As an admin, I have a consistent filter experience across all data pages.
 - As an admin, I can filter any list by date range.
 
 ### Acceptance criteria
+
 - AC1: `src/components/FilterBar.tsx` accepts props: `search`, `onSearchChange`, `statusOptions?: { label: string; value: string }[]`, `status?`, `onStatusChange?`, `dateFrom?`, `onDateFromChange?`, `dateTo?`, `onDateToChange?`, `onClear`, `children?` (for page-specific extras like the course dropdown in Interests).
 - AC2: Text search is debounced 300ms inside `FilterBar` using a `useEffect`+`setTimeout` pattern.
 - AC3: An "Active filters" indicator badge appears in the `FilterBar` when any filter differs from its default.
@@ -130,7 +146,6 @@ The four data pages (Enquiries, Interests, Enrollments, Training Plans) each hav
 - AC9: `getInterests`, `getEnquiries`, `getTrainingPlanRequests` in `perfxcel-admin/src/lib/api.ts` have their param types updated to include `date_from?: string; date_to?: string`.
 - AC10: `getInterests`, `getEnquiries`, `getTrainingPlanRequests` controllers in `perfxcel-api` apply `.gte("created_at", date_from)` and `.lte("created_at", date_to)` when those params are present.
 
-
 ---
 
 ## 5. Unified "Register Interest & Download Brochure" Flow (New Feature)
@@ -138,6 +153,7 @@ The four data pages (Enquiries, Interests, Enrollments, Training Plans) each hav
 ### Context from the code
 
 The sidebar on `CourseDetail.tsx` currently has two separate buttons:
+
 1. **Register Interest** → opens `RegisterInterestModal` → calls `submitCourseInterest` (no brochure)
 2. **Download Brochure** → opens `BrochureModal` → calls `requestBrochure` → `POST /courses/:id/brochure`
 
@@ -148,6 +164,7 @@ The `POST /courses/:id/brochure` endpoint and `BrochureModal` component are a du
 ### What changes
 
 When a course has a `brochure_url`:
+
 - The "Register Interest" button label becomes **"Register Interest & Download Brochure"**
 - The separate "Download Brochure" button is removed
 - The `RegisterInterestModal` submits with `request_brochure: true`, triggering the existing backend brochure email logic
@@ -157,11 +174,13 @@ When a course has a `brochure_url`:
 When a course has **no** `brochure_url`, the button stays "Register Interest" and behaviour is unchanged.
 
 ### User stories
+
 - As a visitor on a course page with a brochure, I see a single "Register Interest & Download Brochure" button instead of two separate buttons.
 - After submitting the form, I receive one confirmation and the brochure PDF is emailed to me automatically.
 - As a visitor on a course page without a brochure, I see the regular "Register Interest" button with unchanged behaviour.
 
 ### Acceptance criteria
+
 - AC1: `RegisterInterestModal` accepts a new optional prop `sendBrochure?: boolean`.
 - AC2: When `sendBrochure` is true, `submitCourseInterest` is called with `request_brochure: true` appended to the data payload.
 - AC3: The success message in `RegisterInterestModal` conditionally reads "Thank you! We've received your details and sent the course brochure to your email." when `sendBrochure` is true, and "Thank you! We've received your details." otherwise.

@@ -39,13 +39,11 @@ export const updateSettings = async (req: Request, res: Response) => {
   }
 
   for (const [key, val] of updates) {
-    const { error } = await perfxcelSupabase
-      .from("settings")
-      .upsert({
-        setting_key: key,
-        setting_value: val,
-        updated_at: new Date().toISOString(),
-      });
+    const { error } = await perfxcelSupabase.from("settings").upsert({
+      setting_key: key,
+      setting_value: val,
+      updated_at: new Date().toISOString(),
+    });
 
     if (error) {
       throw new AppError(

@@ -3,7 +3,11 @@ import multer from "multer";
 import { asyncHandler } from "@dotevolve/error-utils";
 import { requireAuth } from "../middleware/auth";
 import { requirePerfxcelTenant } from "../middleware/tenant";
-import { uploadTrainingPlan, downloadTrainingPlan, uploadCourseBrochure } from "../controllers/uploadController";
+import {
+  uploadTrainingPlan,
+  downloadTrainingPlan,
+  uploadCourseBrochure,
+} from "../controllers/uploadController";
 
 const pdfUpload = multer({
   storage: multer.memoryStorage(),
@@ -18,8 +22,25 @@ const pdfUpload = multer({
 });
 
 const router = Router();
-router.post("/training-plan", requireAuth, requirePerfxcelTenant, pdfUpload.single("file"), asyncHandler(uploadTrainingPlan));
-router.get("/training-plan/download", requireAuth, requirePerfxcelTenant, asyncHandler(downloadTrainingPlan));
-router.post("/course-brochure", requireAuth, requirePerfxcelTenant, pdfUpload.single("file"), asyncHandler(uploadCourseBrochure));
+router.post(
+  "/training-plan",
+  requireAuth,
+  requirePerfxcelTenant,
+  pdfUpload.single("file"),
+  asyncHandler(uploadTrainingPlan),
+);
+router.get(
+  "/training-plan/download",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(downloadTrainingPlan),
+);
+router.post(
+  "/course-brochure",
+  requireAuth,
+  requirePerfxcelTenant,
+  pdfUpload.single("file"),
+  asyncHandler(uploadCourseBrochure),
+);
 
 export default router;

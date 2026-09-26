@@ -1,4 +1,5 @@
 # Technical Design
+
 ## Perfxcel Phase 2 — File Uploads, Audit Logs, Filters & Course Overview
 
 All designs grounded in actual source code.
@@ -10,18 +11,24 @@ All designs grounded in actual source code.
 ### 1.1 Backend — new `src/routes/upload.ts` + `src/controllers/uploadController.ts`
 
 Install multer (check if already present first):
+
 ```bash
 npm install multer @types/multer  # in perfxcel-api
 ```
 
 **`src/routes/upload.ts`:**
+
 ```typescript
 import { Router } from "express";
 import multer from "multer";
 import { asyncHandler } from "@dotevolve/error-utils";
 import { requireAuth } from "../middleware/auth";
 import { requirePerfxcelTenant } from "../middleware/tenant";
-import { uploadTrainingPlan, downloadTrainingPlan, uploadCourseBrochure } from "../controllers/uploadController";
+import {
+  uploadTrainingPlan,
+  downloadTrainingPlan,
+  uploadCourseBrochure,
+} from "../controllers/uploadController";
 
 const pdfUpload = multer({
   storage: multer.memoryStorage(),
@@ -36,27 +43,47 @@ const pdfUpload = multer({
 });
 
 const router = Router();
-router.post("/training-plan",     requireAuth, requirePerfxcelTenant, pdfUpload.single("file"), asyncHandler(uploadTrainingPlan));
-router.get( "/training-plan/download", requireAuth, requirePerfxcelTenant, asyncHandler(downloadTrainingPlan));
-router.post("/course-brochure",   requireAuth, requirePerfxcelTenant, pdfUpload.single("file"), asyncHandler(uploadCourseBrochure));
+router.post(
+  "/training-plan",
+  requireAuth,
+  requirePerfxcelTenant,
+  pdfUpload.single("file"),
+  asyncHandler(uploadTrainingPlan),
+);
+router.get(
+  "/training-plan/download",
+  requireAuth,
+  requirePerfxcelTenant,
+  asyncHandler(downloadTrainingPlan),
+);
+router.post(
+  "/course-brochure",
+  requireAuth,
+  requirePerfxcelTenant,
+  pdfUpload.single("file"),
+  asyncHandler(uploadCourseBrochure),
+);
 
 export default router;
 ```
 
 Register in `app.ts`:
+
 ```typescript
 import uploadRoutes from "./routes/upload";
 app.use("/api/v1/upload", uploadRoutes);
 ```
 
 **`src/controllers/uploadController.ts`:**
+
 ```typescript
 import { Request, Response } from "express";
 import { perfxcelSupabase } from "../db/supabase";
 import { AppError, ErrorCategory, NotFoundError } from "@dotevolve/error-utils";
 
 export const uploadTrainingPlan = async (req: Request, res: Response) => {
-  if (!req.file) throw new AppError("No file provided", 400, ErrorCategory.VALIDATION);
+  if (!req.file)
+    throw new AppError("No file provided", 400, ErrorCategory.VALIDATION);
 
   const { error } = await perfxcelSupabase.storage
     .from("assets")
@@ -77,16 +104,21 @@ export const downloadTrainingPlan = async (_req: Request, res: Response) => {
     .from("assets")
     .createSignedUrl("training_plan.pdf", 60);
 
-  if (error || !data?.signedUrl) throw new NotFoundError("Training plan not found");
+  if (error || !data?.signedUrl)
+    throw new NotFoundError("Training plan not found");
 
-  res.status(200).json({ status: "success", data: { signedUrl: data.signedUrl } });
+  res
+    .status(200)
+    .json({ status: "success", data: { signedUrl: data.signedUrl } });
 };
 
 export const uploadCourseBrochure = async (req: Request, res: Response) => {
-  if (!req.file) throw new AppError("No file provided", 400, ErrorCategory.VALIDATION);
+  if (!req.file)
+    throw new AppError("No file provided", 400, ErrorCategory.VALIDATION);
 
   const { short_code } = req.body;
-  if (!short_code) throw new AppError("short_code is required", 400, ErrorCategory.VALIDATION);
+  if (!short_code)
+    throw new AppError("short_code is required", 400, ErrorCategory.VALIDATION);
 
   const filename = `${short_code}.pdf`;
   const { error } = await perfxcelSupabase.storage
@@ -105,7 +137,9 @@ export const uploadCourseBrochure = async (req: Request, res: Response) => {
   // course-brochures bucket is private — return API proxy URL for download
   const url = `${process.env.PERFXCEL_API_URL}/api/v1/interests/brochure/by-course/${short_code}`;
 
-  res.status(200).json({ status: "success", data: { url: urlData.publicUrl, filename } });
+  res
+    .status(200)
+    .json({ status: "success", data: { url: urlData.publicUrl, filename } });
 };
 ```
 
@@ -114,8 +148,11 @@ Note: `perfxcelSupabase` is the service-role client — it bypasses RLS entirely
 ### 1.2 Admin frontend changes
 
 **`src/lib/api.ts` additions:**
+
 ```typescript
-export const uploadTrainingPlan = async (file: File): Promise<{ url: string }> => {
+export const uploadTrainingPlan = async (
+  file: File,
+): Promise<{ url: string }> => {
   const form = new FormData();
   form.append("file", file);
   const response = await api.post("/upload/training-plan", form, {
@@ -129,7 +166,10 @@ export const downloadTrainingPlanUrl = async (): Promise<string> => {
   return response.data.data.signedUrl;
 };
 
-export const uploadCourseBrochure = async (file: File, shortCode: string): Promise<{ url: string }> => {
+export const uploadCourseBrochure = async (
+  file: File,
+  shortCode: string,
+): Promise<{ url: string }> => {
   const form = new FormData();
   form.append("file", file);
   form.append("short_code", shortCode);
@@ -187,20 +227,22 @@ await fetch(`${portalUrl}/api/v1/audit-logs`, { ... });
 ### 2.2 Fix Bug B — missing `actorType` field
 
 **Update `AuditEventParams` interface:**
+
 ```typescript
 interface AuditEventParams {
-  tenantId?:   string;
-  actorId:     string;
+  tenantId?: string;
+  actorId: string;
   actorEmail?: string;
-  actorType:   "user" | "service";   // ← ADD THIS — required by portal Zod schema
-  action:      string;
-  entityType:  string;
-  entityId?:   string;
-  details?:    Record<string, unknown>;
+  actorType: "user" | "service"; // ← ADD THIS — required by portal Zod schema
+  action: string;
+  entityType: string;
+  entityId?: string;
+  details?: Record<string, unknown>;
 }
 ```
 
 **Update the body sent to the portal to match `ingestAuditLogsSchema`:**
+
 ```typescript
 body: JSON.stringify({
   events: [{
@@ -218,26 +260,26 @@ body: JSON.stringify({
 
 **Update all `logAuditEvent` call sites in controllers:**
 
-| Controller | Function | `actorType` value |
-|---|---|---|
-| `courseController` | `registerInterest` | `"service"` (public route, no user) |
-| `courseController` | `createCourse` | `"user"` |
-| `courseController` | `updateCourse` | `"user"` |
-| `trainingPlanController` | `requestTrainingPlan` | `"service"` |
-| `enquiryController` | `submitContact` | `"service"` |
-| `interestController` | `updateInterestStatus` | `"user"` |
-| `interestController` | `createInterestManual` | `"user"` |
-| `interestController` | `resendBrochure` | `"user"` |
-| `interestController` | `deleteInterests` | `"user"` |
-| `interestController` | `hardDeleteInterest` | `"user"` |
-| `enrollmentController` | `updateEnrollmentStatus` | `"user"` |
-| `enrollmentController` | `createEnrollment` | `"user"` |
-| `enrollmentController` | `resendCertificate` | `"user"` |
-| `trainingPlanController` | `createTrainingPlanManual` | `"user"` |
-| `trainingPlanController` | `resendTrainingPlan` | `"user"` |
-| `trainingPlanController` | `deleteTrainingPlans` | `"user"` |
-| `trainingPlanController` | `hardDeleteTrainingPlan` | `"user"` |
-| `settingsController` | `updateSettings` | `"user"` |
+| Controller               | Function                   | `actorType` value                   |
+| ------------------------ | -------------------------- | ----------------------------------- |
+| `courseController`       | `registerInterest`         | `"service"` (public route, no user) |
+| `courseController`       | `createCourse`             | `"user"`                            |
+| `courseController`       | `updateCourse`             | `"user"`                            |
+| `trainingPlanController` | `requestTrainingPlan`      | `"service"`                         |
+| `enquiryController`      | `submitContact`            | `"service"`                         |
+| `interestController`     | `updateInterestStatus`     | `"user"`                            |
+| `interestController`     | `createInterestManual`     | `"user"`                            |
+| `interestController`     | `resendBrochure`           | `"user"`                            |
+| `interestController`     | `deleteInterests`          | `"user"`                            |
+| `interestController`     | `hardDeleteInterest`       | `"user"`                            |
+| `enrollmentController`   | `updateEnrollmentStatus`   | `"user"`                            |
+| `enrollmentController`   | `createEnrollment`         | `"user"`                            |
+| `enrollmentController`   | `resendCertificate`        | `"user"`                            |
+| `trainingPlanController` | `createTrainingPlanManual` | `"user"`                            |
+| `trainingPlanController` | `resendTrainingPlan`       | `"user"`                            |
+| `trainingPlanController` | `deleteTrainingPlans`      | `"user"`                            |
+| `trainingPlanController` | `hardDeleteTrainingPlan`   | `"user"`                            |
+| `settingsController`     | `updateSettings`           | `"user"`                            |
 
 ### 2.3 Fix Bug C — proxy error surfacing
 
@@ -274,12 +316,14 @@ ALTER TABLE perfxcel.courses
 ### 3.2 Backend — `src/validators/schemas.ts`
 
 ```typescript
-export const courseInputSchema = z.object({
-  // ...existing fields...
-  overview: z.string().trim().max(5000).optional().nullable(),
-  course_outline: courseOutlineSchema.optional().nullable(),
-  brochure_url: z.string().url().optional().nullable(),
-}).passthrough();
+export const courseInputSchema = z
+  .object({
+    // ...existing fields...
+    overview: z.string().trim().max(5000).optional().nullable(),
+    course_outline: courseOutlineSchema.optional().nullable(),
+    brochure_url: z.string().url().optional().nullable(),
+  })
+  .passthrough();
 ```
 
 No changes to `courseController.ts` needed — `overview` passes through `coreFields` in `createCourse` / `updateCourse` destructuring already (because `category_ids`, `city_ids`, etc. are extracted but everything else including unknown fields goes into `coreFields` via the spread).
@@ -287,16 +331,19 @@ No changes to `courseController.ts` needed — `overview` passes through `coreFi
 ### 3.3 Admin frontend — `CourseForm.tsx`
 
 **`courseFormSchema.ts` addition:**
+
 ```typescript
 overview: z.string().trim().max(5000).optional().nullable(),
 ```
 
 **`CourseFormValues` default values:**
+
 ```typescript
 overview: null,
 ```
 
 **Load on edit** (inside `reset({...})`):
+
 ```typescript
 overview: course.overview ?? null,
 ```
@@ -315,7 +362,8 @@ overview: course.overview ?? null,
     placeholder="A narrative overview of the course for the public course page..."
   />
   <p className="mt-1 text-xs text-gray-500">
-    {(watch("overview") ?? "").length}/5000 characters. Displayed at the top of the public course page.
+    {(watch("overview") ?? "").length}/5000 characters. Displayed at the top of
+    the public course page.
   </p>
   {errors.overview && (
     <p className="mt-1 text-sm text-red-600">{errors.overview.message}</p>
@@ -324,6 +372,7 @@ overview: course.overview ?? null,
 ```
 
 **`Course` interface in `api.ts`:**
+
 ```typescript
 overview?: string | null;
 ```
@@ -333,17 +382,20 @@ overview?: string | null;
 Insert between the hero image block and the badges/title section (or after the title and before the description — whichever gives the best visual flow based on existing layout):
 
 ```tsx
-{course.overview && (
-  <div className="mb-12">
-    <h2 className="font-bold text-secondary-900 text-2xl mb-4">Overview</h2>
-    <p className="text-secondary-700 leading-relaxed whitespace-pre-wrap text-lg">
-      {course.overview}
-    </p>
-  </div>
-)}
+{
+  course.overview && (
+    <div className="mb-12">
+      <h2 className="font-bold text-secondary-900 text-2xl mb-4">Overview</h2>
+      <p className="text-secondary-700 leading-relaxed whitespace-pre-wrap text-lg">
+        {course.overview}
+      </p>
+    </div>
+  );
+}
 ```
 
 Looking at the current layout order in `CourseDetail.tsx`:
+
 1. Hero image
 2. Breadcrumb
 3. Badges (categories, cities, associations)
@@ -355,6 +407,7 @@ Looking at the current layout order in `CourseDetail.tsx`:
 Place the Overview section **between step 5 (description) and step 6 (objectives)** so the narrative flows from brief description → full overview → structured objectives.
 
 **`Course` interface in `src/types/course.ts`:**
+
 ```typescript
 overview?: string | null;
 ```
@@ -460,6 +513,7 @@ export default function FilterBar({
 ### 4.2 Per-page changes
 
 **Enquiries.tsx:**
+
 ```typescript
 const [status, setStatus] = useState("all");
 const [dateFrom, setDateFrom] = useState("");
@@ -492,9 +546,8 @@ In `perfxcel-api` controllers for `getEnquiries`, `getInterests`, `getTrainingPl
 ```typescript
 const { date_from, date_to } = req.query;
 if (date_from) query = query.gte("created_at", date_from);
-if (date_to)   query = query.lte("created_at", date_to);
+if (date_to) query = query.lte("created_at", date_to);
 ```
-
 
 ---
 
@@ -505,14 +558,23 @@ if (date_to)   query = query.lte("created_at", date_to);
 The unified flow already exists: `POST /courses/:id/interest` with `request_brochure: true` in the body. The separate brochure endpoint is redundant.
 
 In `src/routes/courses.ts`, remove:
+
 ```typescript
-router.post("/:id/brochure", strictLimiter, validateBody(brochureRequestSchema), asyncHandler(requestBrochureHandler));
+router.post(
+  "/:id/brochure",
+  strictLimiter,
+  validateBody(brochureRequestSchema),
+  asyncHandler(requestBrochureHandler),
+);
 ```
+
 And delete the corresponding handler from `courseController.ts` (or wherever `requestBrochure` is defined).
 
 Verify `registerInterest` in `courseController.ts` handles `request_brochure: true` correctly — it already does per the sprint-1 implementation:
+
 ```typescript
-const { name, email, phone, company, turnstileToken, request_brochure } = req.body;
+const { name, email, phone, company, turnstileToken, request_brochure } =
+  req.body;
 // ... Turnstile validation ...
 // After insert:
 if (request_brochure && courseQuery.data.brochure_url) {
@@ -527,6 +589,7 @@ No backend changes beyond removing the duplicate route.
 **Remove** `requestBrochure` function entirely.
 
 **Update** `submitCourseInterest` to accept `request_brochure`:
+
 ```typescript
 export const submitCourseInterest = async (
   courseId: string,
@@ -535,7 +598,7 @@ export const submitCourseInterest = async (
     email: string;
     phone?: string;
     company?: string;
-    request_brochure?: boolean;   // ← add
+    request_brochure?: boolean; // ← add
   },
   turnstileToken: string,
 ) => {
@@ -550,15 +613,17 @@ export const submitCourseInterest = async (
 ### 5.3 Frontend — `RegisterInterestModal.tsx`
 
 **Add prop:**
+
 ```typescript
 interface RegisterInterestModalProps {
   course: Course;
   onClose: () => void;
-  sendBrochure?: boolean;   // ← add
+  sendBrochure?: boolean; // ← add
 }
 ```
 
 **Submit handler** — pass flag through:
+
 ```typescript
 await submitCourseInterest(
   course.id,
@@ -568,6 +633,7 @@ await submitCourseInterest(
 ```
 
 **Success message** — conditional:
+
 ```tsx
 <div className="bg-green-50 text-green-700 p-4 rounded-xl text-center font-medium">
   {sendBrochure
@@ -581,30 +647,37 @@ No other changes to the modal — the form fields, Turnstile, and styling are un
 ### 5.4 Frontend — `CourseDetail.tsx`
 
 **Remove:**
+
 - `const [showBrochureModal, setShowBrochureModal] = useState(false);`
 - The `BrochureModal` import
 - The separate "Download Brochure" button JSX
 - The `{showBrochureModal && <BrochureModal ... />}` render at the bottom
 
 **Update "Register Interest" button:**
+
 ```tsx
 <button
   onClick={() => setShowModal(true)}
   className="w-full bg-accent-500 hover:bg-accent-600 text-secondary-900 font-bold py-4 rounded-xl shadow-lg shadow-accent-500/30 transform transition hover:-translate-y-0.5"
 >
-  {course.brochure_url ? "Register Interest & Download Brochure" : "Register Interest"}
+  {course.brochure_url
+    ? "Register Interest & Download Brochure"
+    : "Register Interest"}
 </button>
 ```
 
 **Update `RegisterInterestModal` render:**
+
 ```tsx
-{showModal && (
-  <RegisterInterestModal
-    course={course}
-    onClose={() => setShowModal(false)}
-    sendBrochure={!!course.brochure_url}
-  />
-)}
+{
+  showModal && (
+    <RegisterInterestModal
+      course={course}
+      onClose={() => setShowModal(false)}
+      sendBrochure={!!course.brochure_url}
+    />
+  );
+}
 ```
 
 The `Download` lucide icon import can be removed from this file if it's no longer used after the button is gone.
