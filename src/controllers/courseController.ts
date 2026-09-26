@@ -102,6 +102,7 @@ export const getCourses = async (req: Request, res: Response) => {
     status,
     is_public,
     is_published,
+    publish_statuses,
   } = req.query;
 
   const innerCat = category_id ? "!inner" : "";
@@ -150,14 +151,28 @@ export const getCourses = async (req: Request, res: Response) => {
     query = query.eq("status", status);
   }
 
-  if (is_public === "true") {
-    query = query.eq("is_public", true);
-  }
+  if (publish_statuses) {
+    const statuses = Array.isArray(publish_statuses)
+      ? publish_statuses
+      : [publish_statuses];
+    const orConditions: string[] = [];
+    if (statuses.includes("draft")) orConditions.push("is_published.eq.false");
+    if (statuses.includes("published"))
+      orConditions.push("is_published.eq.true");
+    if (statuses.includes("public")) orConditions.push("is_public.eq.true");
 
-  if (is_published === "true") {
-    query = query.eq("is_published", true);
-  } else if (is_published === "false") {
-    query = query.eq("is_published", false);
+    if (orConditions.length > 0) {
+      query = query.or(orConditions.join(","));
+    }
+  } else {
+    if (is_public === "true") {
+      query = query.eq("is_public", true);
+    }
+    if (is_published === "true") {
+      query = query.eq("is_published", true);
+    } else if (is_published === "false") {
+      query = query.eq("is_published", false);
+    }
   }
 
   if (search) {
