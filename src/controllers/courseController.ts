@@ -101,6 +101,7 @@ export const getCourses = async (req: Request, res: Response) => {
     include_deleted,
     status,
     is_public,
+    is_published,
   } = req.query;
 
   const innerCat = category_ids ? "!inner" : "";
@@ -151,6 +152,12 @@ export const getCourses = async (req: Request, res: Response) => {
 
   if (is_public === "true") {
     query = query.eq("is_public", true);
+  }
+
+  if (is_published === "true") {
+    query = query.eq("is_published", true);
+  } else if (is_published === "false") {
+    query = query.eq("is_published", false);
   }
 
   if (search) {
